@@ -62,7 +62,7 @@ from data_utils.passiv_helpers import (
     eval_passivization_cls_callback,
 )
 
-WANDB_ENTITY_NAME = "<Insert-Your-Entity-Name>"
+WANDB_ENTITY_NAME = "amirzur1212"
 
 
 class AttrDict(dict):

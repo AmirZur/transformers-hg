@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import sequence
 from tqdm import tqdm
@@ -151,6 +152,8 @@ def plotting_util(dict_of_elems, step):
                 wandbdict[k] = v
         elif isinstance(v, (int, float)):
             wandbdict[k] = v
+        elif isinstance(v, (np.float32, np.float64, np.int32)):
+            wandbdict[k] = v.item()
         else:
             assert False, f"Invalid data type {type(v)}"
     wandbdict["iteration"] = step

@@ -1,0 +1,5 @@
+nlprun -a ellipse -g 1 -q jag -o logs/qf_s0 'python train_transformers.py --encoder_n_layers 6 --callback --dataset lm --max_train_steps 300000 --max_grad_norm 1 --eval_every 1000 --tied-embedding --seed 0 --save_dir checkpoints_s0'
+nlprun -a ellipse -g 1 -q jag -o logs/qf_s1 'python train_transformers.py --encoder_n_layers 6 --callback --dataset lm --max_train_steps 300000 --max_grad_norm 1 --eval_every 1000 --tied-embedding --seed 1 --save_dir checkpoints_s1'
+nlprun -a ellipse -g 1 -q jag -o logs/qf_s2 'python train_transformers.py --encoder_n_layers 6 --callback --dataset lm --max_train_steps 300000 --max_grad_norm 1 --eval_every 1000 --tied-embedding --seed 2 --save_dir checkpoints_s2'
+nlprun -a ellipse -g 1 -q jag -o logs/qf_s3 'python train_transformers.py --encoder_n_layers 6 --callback --dataset lm --max_train_steps 300000 --max_grad_norm 1 --eval_every 1000 --tied-embedding --seed 3 --save_dir checkpoints_s3'
+nlprun -a ellipse -g 1 -q jag -o logs/qf_s4 'python train_transformers.py --encoder_n_layers 6 --callback --dataset lm --max_train_steps 300000 --max_grad_norm 1 --eval_every 1000 --tied-embedding --seed 4 --save_dir checkpoints_s4'
