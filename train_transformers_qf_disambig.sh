@@ -1,0 +1,1 @@
+nlprun -a ellipse -g 1 -q jag -o logs/qf_disambig_s42 'python train_transformers.py --encoder_n_layers 6 --callback --dataset qf_disamb --disamb_num 10000 --max_train_steps 100000 --max_grad_norm 1 --eval_every 1000 --tied-embedding --seed 0 --save_every 100000 --save_dir checkpoints_qf_disambig_s42'
