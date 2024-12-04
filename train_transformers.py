@@ -141,7 +141,13 @@ def get_base_transformer_lm(args, in_vocab, model_name=None):
         )
     if model_name:
         print("loading pretrained model from {}".format(model_name))
-        model.load_state_dict(torch.load(model_name, map_location=torch.device("cpu")))
+        # model.load_state_dict(torch.load(model_name, map_location=torch.device("cpu")))
+        # only load the transformer part of the model
+        state_dict = torch.load(model_name, map_location=torch.device("cpu"))
+        transformer_state_dict = {
+            k[len('trafo.'):]: v for k, v in state_dict.items() if k.startswith('trafo')
+        }
+        model.trafo.load_state_dict(transformer_state_dict)
     try:
         interface = create_model_interface(
             model,
