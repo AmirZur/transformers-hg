@@ -204,6 +204,7 @@ def main_lm(args):
                 datasets, in_vocab, _ = build_datasets_tense_inflection(
                     include_only_present=args.exclude_identity,
                     include_only_past_and_simple_present=args.pretrain,
+                    data_dir=args.data_dir,
                 )
             else:
                 datasets, in_vocab, in_sents, out_sents = build_datasets_ti_enc_dec(
@@ -317,6 +318,7 @@ def main_lm(args):
                     include_only_quest=args.exclude_identity,
                     include_only_decls_nd_simpl_ques=args.pretrain,
                     include_only_complex_sents=args.train_on_compl_only,
+                    data_name=args.data_dir
                 )
             else:
                 datasets, in_vocab, in_sents, out_sents = build_datasets_enc_dec(
@@ -625,6 +627,9 @@ if __name__ == "__main__":
     parser.add_argument("--eval_keys", type=str, default="")
 
     parser.add_argument("--is_prefix_lm", action="store_true")
+
+    # NEW: specify alternate data directory (for different splits)
+    parser.add_argument("--data_dir", type=str, default=None)
 
     args = parser.parse_args()
     set_seed(args)

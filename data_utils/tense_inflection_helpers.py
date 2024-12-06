@@ -310,8 +310,11 @@ def read_ti_cls_data(
 def build_datasets_tense_inflection(
     include_only_present=False,
     include_only_past_and_simple_present=False,
-    data_dir="tense_inflection_data",
+    data_dir=None
 ):
+    if data_dir is None:
+        data_dir = "tense_inflection_data"
+
     def get_subset(elem_list, idx_list):
         return [elem_list[idx] for idx in idx_list]
 

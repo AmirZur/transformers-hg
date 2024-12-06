@@ -108,7 +108,7 @@ def read_lm_cls_data(splits, do_process=True):
 
 
 def build_datasets_lm(
-    data_name="question_formation_data",
+    data_name=None,
     filename_prefix="question",
     test_filename_prefix=None,
     include_only_quest=False,
@@ -119,6 +119,9 @@ def build_datasets_lm(
     data_dir=DATA_DIR,
     splits=["train", "val", "test"],
 ):
+    if data_name == None:
+        data_name = "question_formation_data"
+
     def get_subset(elem_list, idx_list):
         return [elem_list[idx] for idx in idx_list]
 
