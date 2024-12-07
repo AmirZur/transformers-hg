@@ -645,7 +645,7 @@ if __name__ == "__main__":
     # NEW: specify alternate data directory (for different splits)
     parser.add_argument("--data_dir", type=str, default=None)
     # NEW: specify wandb directory (it's very large!)
-    parser.add_argument("--wandb_dir", type=str, default="/nlp/scr/amirzur/wandb")
+    parser.add_argument("--wandb_dir", type=str, default=None)
     # NEW: specify shared vocabulary across tasks
     parser.add_argument("--shared_vocab", type=str, default=None)
 
