@@ -245,8 +245,11 @@ def read_ti_data(
     include_only_present=False,
     include_only_past=False,
     include_only_past_and_simple_present=False,
-    data_dir="tense_inflection_data",
+    data_dir=None,
 ):
+    if data_dir is None:
+        data_dir = "tense_inflection_data"
+
     in_sentences = []
     index_map = {split: [] for split in splits}
     for split in splits:
