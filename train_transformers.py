@@ -61,6 +61,7 @@ from data_utils.passiv_helpers import (
     eval_callback_passivization,
     eval_passivization_cls_callback,
 )
+from vocabulary import WordVocabulary
 
 WANDB_ENTITY_NAME = "amirzur1212"
 
@@ -141,13 +142,13 @@ def get_base_transformer_lm(args, in_vocab, model_name=None):
         )
     if model_name:
         print("loading pretrained model from {}".format(model_name))
-        # model.load_state_dict(torch.load(model_name, map_location=torch.device("cpu")))
+        model.load_state_dict(torch.load(model_name, map_location=torch.device("cpu")))
         # only load the transformer part of the model
-        state_dict = torch.load(model_name, map_location=torch.device("cpu"))
-        transformer_state_dict = {
-            k[len('trafo.'):]: v for k, v in state_dict.items() if k.startswith('trafo')
-        }
-        model.trafo.load_state_dict(transformer_state_dict)
+        # state_dict = torch.load(model_name, map_location=torch.device("cpu"))
+        # transformer_state_dict = {
+        #     k[len('trafo.'):]: v for k, v in state_dict.items() if k.startswith('trafo')
+        # }
+        # model.trafo.load_state_dict(transformer_state_dict)
     try:
         interface = create_model_interface(
             model,
@@ -335,6 +336,12 @@ def main_lm(args):
                 out_auxs,
             ) = build_datasets_lm_cls()
 
+    # use a vocabulary that is shared across all tasks
+    if args.shared_vocab:
+        in_vocab = WordVocabulary()
+        in_vocab.load_state_dict(args.shared_vocab)
+        print(f'Loading shared vocab (len={len(in_vocab)})')
+
     if args.mode != "enc":
         if not args.not_lm:
             model, interface = get_base_transformer_lm(
@@ -349,6 +356,7 @@ def main_lm(args):
         model, interface = get_base_transformer_cls(
             args, in_vocab, out_vocab, model_name=args.model_load_path
         )
+
     if len(args.save_dir) > 0:
         dir_path = working_dir()
         args.save_dir = os.path.join(dir_path, args.save_dir)
@@ -634,12 +642,17 @@ if __name__ == "__main__":
 
     # NEW: specify alternate data directory (for different splits)
     parser.add_argument("--data_dir", type=str, default=None)
+    # NEW: specify wandb directory (it's very large!)
+    parser.add_argument("--wandb_dir", type=str, default="/nlp/scr/amirzur/wandb")
+    # NEW: specify shared vocabulary across tasks
+    parser.add_argument("--shared_vocab", type=str, default=None)
 
     args = parser.parse_args()
     set_seed(args)
     ### NOTE: change this to your own wandb project and entity!
     wandb_logger = wandb.init(
-        project="structural-grokking", entity=WANDB_ENTITY_NAME, config=vars(args)
+        project="transfer_syntax", entity=WANDB_ENTITY_NAME, config=vars(args),
+        dir=args.wandb_dir
     )
     # To work with wandb sweeps
     args = AttrDict((wandb_logger.config))

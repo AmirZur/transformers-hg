@@ -119,7 +119,7 @@ def build_datasets_lm(
     data_dir=DATA_DIR,
     splits=["train", "val", "test"],
 ):
-    if data_name == None:
+    if data_name is None:
         data_name = "question_formation_data"
 
     def get_subset(elem_list, idx_list):
