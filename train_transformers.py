@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import random
 import os
@@ -339,7 +340,8 @@ def main_lm(args):
     # use a vocabulary that is shared across all tasks
     if args.shared_vocab:
         in_vocab = WordVocabulary()
-        in_vocab.load_state_dict(args.shared_vocab)
+        with open(args.shared_vocab) as f:
+            in_vocab.load_state_dict(json.load(f))
         print(f'Loading shared vocab (len={len(in_vocab)})')
 
     if args.mode != "enc":
