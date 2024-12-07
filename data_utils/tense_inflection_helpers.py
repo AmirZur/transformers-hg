@@ -503,7 +503,7 @@ def build_datasets_ti_mlm(mask_strategy, **kwargs):
     return dataset, in_vocab, in_sentences
 
 
-def eval_callback_tense_inflection(lm, in_vocab, split):
+def eval_callback_tense_inflection(lm, in_vocab, split, data_dir=None):
     def tokenizer(s):
         return [lm.encoder_sos] + in_vocab(s)
 
@@ -513,7 +513,7 @@ def eval_callback_tense_inflection(lm, in_vocab, split):
         else:
             return s
 
-    sents, _ = read_ti_data([split])
+    sents, _ = read_ti_data([split], data_dir=data_dir)
     if len(sents) > 2000:
         sents = random.sample(sents, k=2000)
 

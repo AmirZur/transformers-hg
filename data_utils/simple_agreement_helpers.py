@@ -70,12 +70,15 @@ def read_grammar_gen_data(
     include_simple_sents_only=False,
     grammar_tgt=None,
     do_process=True,
+    data_dir=None
 ):
+    if data_dir is None:
+        data_dir = 'grammar_gen_data'
     in_sentences = []
     index_map = {split: [] for split in splits}
     for split in splits:
         if grammar_tgt is None:
-            with open(f"{DATA_DIR}/grammar_gen_data/{grammar}.{split}") as reader:
+            with open(f"{DATA_DIR}/{data_dir}/{grammar}.{split}") as reader:
                 if do_process:
                     sents = [process(line) for line in reader.readlines()]
                 else:
@@ -143,7 +146,7 @@ def read_grammar_gen_cls_data(splits, grammar, do_process=True):
 
 
 def build_datasets_simple_agreement(
-    grammar, grammar_tgt=None, eval_keys=[], include_simple_sents_only=False
+    grammar, grammar_tgt=None, eval_keys=[], include_simple_sents_only=False, data_dir=None
 ):
     def get_subset(elem_list, idx_list):
         return [elem_list[idx] for idx in idx_list]
@@ -157,6 +160,7 @@ def build_datasets_simple_agreement(
         grammar,
         include_simple_sents_only=include_simple_sents_only,
         grammar_tgt=grammar_tgt,
+        data_dir=data_dir
     )
     print("num examples: {}".format(len(in_sentences)))
     in_vocab = WordVocabulary(in_sentences, split_punctuation=False)
@@ -288,12 +292,12 @@ def build_datasets_simple_agreement_mlm(grammar, mask_strategy):
     return dataset, in_vocab, in_sentences
 
 
-def eval_callback_simple_agreement(lm, in_vocab, split, grammar, grammar_tgt=None):
+def eval_callback_simple_agreement(lm, in_vocab, split, grammar, grammar_tgt=None, data_dir=None):
     def tokenizer(s):
         return [lm.encoder_sos] + in_vocab(s)
 
     lm.eval()
-    sents, _ = read_grammar_gen_data([split], grammar, grammar_tgt=grammar_tgt)
+    sents, _ = read_grammar_gen_data([split], grammar, grammar_tgt=grammar_tgt, data_dir=data_dir)
 
     prefixes = []
     verb_words = []
@@ -323,14 +327,14 @@ def eval_callback_simple_agreement(lm, in_vocab, split, grammar, grammar_tgt=Non
     return agg_acc
 
 
-def eval_all_agreements(lm, in_vocab, split, grammar, grammar_tgt=None):
+def eval_all_agreements(lm, in_vocab, split, grammar, grammar_tgt=None, data_dir=None):
     def tokenizer(s):
         return [lm.encoder_sos] + in_vocab(s)
 
     if split == "g2_test":
         return 0.0
     lm.eval()
-    sents, _ = read_grammar_gen_data([split], grammar, grammar_tgt=grammar_tgt)
+    sents, _ = read_grammar_gen_data([split], grammar, grammar_tgt=grammar_tgt, data_dir=data_dir)
 
     # Choose only those sentences which have another verb after the main verb
     def object_rc_verb_filter(sent):

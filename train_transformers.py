@@ -240,6 +240,7 @@ def main_lm(args):
                 eval_keys=args.eval_keys.split(",") if args.eval_keys != "" else [],
                 include_simple_sents_only=args.pretrain,
                 grammar_tgt=args.grammar_tgt if args.grammar_tgt != "" else None,
+                data_dir=args.data_dir
             )
         else:
             datasets, in_vocab, out_vocab, in_sentences, out_verbs = (
@@ -363,7 +364,8 @@ def main_lm(args):
                 if not args.not_lm:
                     callback_fn = {
                         "aux": lambda split: eval_lm_callback(
-                            model, in_vocab, split, is_prefix_lm=args.is_prefix_lm
+                            model, in_vocab, split, is_prefix_lm=args.is_prefix_lm,
+                            data_name=args.data_dir
                         ),
                         # "sent_prob": lambda split: eval_lm_sent_prob_callback(
                         #     interface, in_vocab, split
@@ -415,7 +417,7 @@ def main_lm(args):
         elif args.dataset == "tense":
             if args.mode != "enc":
                 callback_fn = lambda split: eval_callback_tense_inflection(
-                    model, in_vocab, split
+                    model, in_vocab, split, data_dir=args.data_dir
                 )
             else:
                 assert out_vocab is not None
@@ -444,6 +446,7 @@ def main_lm(args):
                         grammar_tgt=(
                             args.grammar_tgt if args.grammar_tgt != "" else None
                         ),
+                        data_dir=args.data_dir
                     ),
                     "all_verb_agreement_acc": lambda split: eval_all_agreements(
                         model,
@@ -453,6 +456,7 @@ def main_lm(args):
                         grammar_tgt=(
                             args.grammar_tgt if args.grammar_tgt != "" else None
                         ),
+                        data_dir=args.data_dir
                     ),
                 }
             else:
