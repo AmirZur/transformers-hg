@@ -240,9 +240,10 @@ def main_lm(args):
     out_vocab = None
     in_vocab = None
     if args.shared_vocab:
+        in_vocab = WordVocabulary(split_punctuation=False)
         with open(args.shared_vocab) as f:
-            in_vocab = WordVocabulary()
             in_vocab.load_state_dict(json.load(f))
+        print(f'Loading shared vocab from {args.shared_vocab} (len={len(in_vocab)})')
 
     if args.dataset == "dyck":
         datasets, in_vocab, _ = build_datasets_dyck(vocab=args.dyck_vocab)

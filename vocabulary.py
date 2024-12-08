@@ -105,6 +105,8 @@ class WordVocabulary:
     def load_state_dict(self, state: Dict[str, Any]):
         self.initialized = True
         self.__dict__.update(state)
+        # make sure that the keys are integers!!
+        self.inv_words = {int(k): v for k, v in self.inv_words.items()}
 
     def __add__(self, other):
         res = WordVocabulary(
