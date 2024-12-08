@@ -369,8 +369,8 @@ def main_lm(args):
             include_only_past_and_simple_present=args.pretrain,
         )
         # make sure datasets have same length
-        tense_train = tense_data["train"].shuffle(seed=args.seed).select(range(len(agree_data["train"])))
-        tense_val = tense_data["val"].shuffle(seed=args.seed).select(range(len(agree_data["val"])))
+        tense_train = tense_data["train"] #.shuffle(seed=args.seed).select(range(len(agree_data["train"])))
+        tense_val = tense_data["val"] #.shuffle(seed=args.seed).select(range(len(agree_data["val"])))
         tense_train = tense_train.remove_columns(['prefix_len'])
         tense_val = tense_val.remove_columns(['prefix_len'])
 
