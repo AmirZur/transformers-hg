@@ -313,7 +313,8 @@ def read_ti_cls_data(
 def build_datasets_tense_inflection(
     include_only_present=False,
     include_only_past_and_simple_present=False,
-    data_dir=None
+    data_dir=None,
+    in_vocab=None,
 ):
     if data_dir is None:
         data_dir = "tense_inflection_data"
@@ -330,8 +331,9 @@ def build_datasets_tense_inflection(
     )
 
     print("num examples: {}".format(len(in_sentences)))
-
-    in_vocab = WordVocabulary(in_sentences, split_punctuation=False)
+    # optional: pass in_vocab to reuse the same vocabulary
+    if in_vocab is None:
+        in_vocab = WordVocabulary(in_sentences, split_punctuation=False)
     dataset = {}
     for split in splits:
         in_subset = get_subset(in_sentences, index_map[split])

@@ -238,6 +238,12 @@ def merge_vocabs(vocabs):
 
 def main_lm(args):
     out_vocab = None
+    in_vocab = None
+    if args.shared_vocab:
+        with open(args.shared_vocab) as f:
+            in_vocab = WordVocabulary()
+            in_vocab.load_state_dict(json.load(f))
+
     if args.dataset == "dyck":
         datasets, in_vocab, _ = build_datasets_dyck(vocab=args.dyck_vocab)
     elif args.dataset == "tense":
@@ -247,6 +253,7 @@ def main_lm(args):
                     include_only_present=args.exclude_identity,
                     include_only_past_and_simple_present=args.pretrain,
                     data_dir=args.data_dir,
+                    in_vocab=in_vocab
                 )
             else:
                 datasets, in_vocab, in_sents, out_sents = build_datasets_ti_enc_dec(
@@ -282,7 +289,8 @@ def main_lm(args):
                 eval_keys=args.eval_keys.split(",") if args.eval_keys != "" else [],
                 include_simple_sents_only=args.pretrain,
                 grammar_tgt=args.grammar_tgt if args.grammar_tgt != "" else None,
-                data_dir=args.data_dir
+                data_dir=args.data_dir,
+                in_vocab=in_vocab,
             )
         else:
             datasets, in_vocab, out_vocab, in_sentences, out_verbs = (
@@ -355,22 +363,31 @@ def main_lm(args):
             )
 
     elif args.dataset == "agreement_to_tense":
+        # use tense vocab across tasks for now bc agreement vocab \subset tense vocab
+        # (a bit wasteful, and need to do something else for qf)
+        _, in_vocab, _ = build_datasets_tense_inflection(
+            include_only_present=args.exclude_identity,
+            include_only_past_and_simple_present=args.pretrain,
+        )
+
         # get simple agreement data
-        agree_data, agree_vocab, _ = build_datasets_simple_agreement(
+        agree_data, _, _ = build_datasets_simple_agreement(
             args.grammar,
             eval_keys=args.eval_keys.split(",") if args.eval_keys != "" else [],
             include_simple_sents_only=args.pretrain,
             grammar_tgt=args.grammar_tgt if args.grammar_tgt != "" else None,
-            data_dir=args.data_dir
+            data_dir=args.data_dir,
+            in_vocab=in_vocab,
         )
         # get ambiguous tense data
-        tense_data, tense_vocab, _ = build_datasets_tense_inflection(
+        tense_data, _, _ = build_datasets_tense_inflection(
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
+            in_vocab=in_vocab
         )
         # make sure datasets have same length
-        tense_train = tense_data["train"] #.shuffle(seed=args.seed).select(range(len(agree_data["train"])))
-        tense_val = tense_data["val"] #.shuffle(seed=args.seed).select(range(len(agree_data["val"])))
+        tense_train = tense_data["train"].shuffle(seed=args.seed).select(range(len(agree_data["train"])))
+        tense_val = tense_data["val"].shuffle(seed=args.seed).select(range(len(agree_data["val"])))
         tense_train = tense_train.remove_columns(['prefix_len'])
         tense_val = tense_val.remove_columns(['prefix_len'])
 
@@ -387,7 +404,6 @@ def main_lm(args):
             "agree_g1_test": agree_data["g1_test"],
             "agree_g2_test": agree_data["g2_test"],
         }
-        in_vocab = merge_vocabs([tense_vocab, agree_vocab])
     else:
         if args.mode != "enc":
             if not args.not_lm:
@@ -752,6 +768,8 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, default=None)
     # NEW: specify wandb directory (it's very large!)
     parser.add_argument("--wandb_dir", type=str, default=None)
+    # NEW: specify shared vocabulary across tasks
+    parser.add_argument("--shared_vocab", type=str, default=None)
 
     args = parser.parse_args()
     set_seed(args)

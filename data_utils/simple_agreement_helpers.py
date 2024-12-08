@@ -146,7 +146,8 @@ def read_grammar_gen_cls_data(splits, grammar, do_process=True):
 
 
 def build_datasets_simple_agreement(
-    grammar, grammar_tgt=None, eval_keys=[], include_simple_sents_only=False, data_dir=None
+    grammar, grammar_tgt=None, eval_keys=[], include_simple_sents_only=False, data_dir=None,
+    in_vocab=None
 ):
     def get_subset(elem_list, idx_list):
         return [elem_list[idx] for idx in idx_list]
@@ -163,7 +164,9 @@ def build_datasets_simple_agreement(
         data_dir=data_dir
     )
     print("num examples: {}".format(len(in_sentences)))
-    in_vocab = WordVocabulary(in_sentences, split_punctuation=False)
+    # optinal: pass in_vocab to reuse the same vocabulary
+    if in_vocab is None:
+        in_vocab = WordVocabulary(in_sentences, split_punctuation=False)
 
     dataset = {}
 
