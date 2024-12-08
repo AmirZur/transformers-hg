@@ -12,4 +12,5 @@ python train_transformers.py \
     --save_dir /nlp/scr/amirzur/checkpoint_agreement_sm_hier_s$seed \
     --grammar agreement_hr \
     --data_dir grammar_gen_hier_data \
-    --wandb_dir /nlp/scr/amirzur
+    --wandb_dir /nlp/scr/amirzur \
+    --shared_vocab

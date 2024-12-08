@@ -240,10 +240,14 @@ def main_lm(args):
     out_vocab = None
     in_vocab = None
     if args.shared_vocab:
-        in_vocab = WordVocabulary(split_punctuation=False)
-        with open(args.shared_vocab) as f:
-            in_vocab.load_state_dict(json.load(f))
-        print(f'Loading shared vocab from {args.shared_vocab} (len={len(in_vocab)})')
+        # in_vocab = WordVocabulary(split_punctuation=False)
+        # with open(args.shared_vocab) as f:
+        #     in_vocab.load_state_dict(json.load(f))
+        # print(f'Loading shared vocab from {args.shared_vocab} (len={len(in_vocab)})')
+        _, in_vocab, _ = build_datasets_tense_inflection(
+            include_only_present=args.exclude_identity,
+            include_only_past_and_simple_present=args.pretrain,
+        )
 
     if args.dataset == "dyck":
         datasets, in_vocab, _ = build_datasets_dyck(vocab=args.dyck_vocab)
@@ -770,7 +774,8 @@ if __name__ == "__main__":
     # NEW: specify wandb directory (it's very large!)
     parser.add_argument("--wandb_dir", type=str, default=None)
     # NEW: specify shared vocabulary across tasks
-    parser.add_argument("--shared_vocab", type=str, default=None)
+    # parser.add_argument("--shared_vocab", type=str, default=None)
+    parser.add_argument("--shared_vocab", action="store_true")
 
     args = parser.parse_args()
     set_seed(args)

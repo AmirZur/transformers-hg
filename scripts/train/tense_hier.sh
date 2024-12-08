@@ -12,4 +12,4 @@ python train_transformers.py \
     --save_dir /nlp/scr/amirzur/checkpoint_tense_hier_svocab_s$seed \
     --data_dir tense_inflection_hier_data \
     --wandb_dir /nlp/scr/amirzur \
-    --shared_vocab data_utils/shared_vocab/shared_vocab.json
+    --shared_vocab

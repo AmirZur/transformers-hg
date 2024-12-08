@@ -12,4 +12,5 @@ python train_transformers.py \
     --save_dir /nlp/scr/amirzur/checkpoint_agreement_sm_linear_s$seed \
     --grammar agreement_linear \
     --data_dir grammar_gen_linear_data \
-    --wandb_dir /nlp/scr/amirzur
+    --wandb_dir /nlp/scr/amirzur \
+    --shared_vocab
