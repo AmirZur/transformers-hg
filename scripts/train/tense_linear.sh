@@ -1,5 +1,5 @@
 seed=$1
-# --shared_vocab data_utils/shared_vocab/shared_vocab.json \
+
 python train_transformers.py \
     --encoder_n_layers 6 \
     --callback \

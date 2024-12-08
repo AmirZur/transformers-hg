@@ -4,3 +4,4 @@ nlprun -a ellipse -g 1 -q jag -o logs/agreement_lg_hier_s1.log 'bash scripts/tra
 # agreement (large) linear
 nlprun -a ellipse -g 1 -q jag -o logs/agreement_lg_linear_s0.log 'bash scripts/train/agreement_lg_linear.sh 0'
 nlprun -a ellipse -g 1 -q jag -o logs/agreement_lg_linear_s1.log 'bash scripts/train/agreement_lg_linear.sh 1'
+# TODO: agreement (large) ambiguous

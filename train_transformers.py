@@ -119,7 +119,39 @@ def get_base_transformer_model(
     return model, interface
 
 
-def get_base_transformer_lm(args, in_vocab, model_name=None):
+def load_model(lm, state_dict, old_vocab, new_vocab):
+    """
+    Load model from state direct
+    The model has the same hidden size, but different vocab size from the state_dict
+    We want to load the state_dict into the model, but only for the embeddings
+    that are shared between the two vocabs.
+    """
+    # load transfomer weights
+    transformer_state_dict = {
+        k[len('trafo.'):]: v for k, v in state_dict.items() if k.startswith('trafo')
+    }
+    lm.trafo.load_state_dict(transformer_state_dict)
+
+    # load positional embeddings (shared across models)
+    lm.pos.pe = state_dict['pos.pe']
+
+    # load embeddings and output mapping
+    # create mapping between old and new vocab
+    mapping = []
+    for i in range(len(new_vocab)):
+        # if word is shared, get index of word in old vocab
+        new_word = new_vocab.inv_words[str(i)]
+        if new_word in old_vocab.words:
+            mapping.append(
+                (i, old_vocab.words[new_word])
+            )
+    new_indices, old_indices = zip(*mapping)
+    new_indices, old_indices = list(new_indices), list(old_indices)
+    lm.input_embedding.weight.data[new_indices] = state_dict['input_embedding.weight'][old_indices]
+    # ignore bias (seems to slightly hurt performance??)
+    lm.output_map.bias.data[new_indices] = state_dict['output_map.bias'][old_indices]
+
+def get_base_transformer_lm(args, in_vocab, model_name=None, model_checkpoint=None):
     try:
         model = create_lm(
             len(in_vocab),
@@ -142,14 +174,13 @@ def get_base_transformer_lm(args, in_vocab, model_name=None):
             tied_embedding=args.tied_embedding,
         )
     if model_name:
-        print("loading pretrained model from {}".format(model_name))
-        model.load_state_dict(torch.load(model_name, map_location=torch.device("cpu")))
-        # only load the transformer part of the model
-        # state_dict = torch.load(model_name, map_location=torch.device("cpu"))
-        # transformer_state_dict = {
-        #     k[len('trafo.'):]: v for k, v in state_dict.items() if k.startswith('trafo')
-        # }
-        # model.trafo.load_state_dict(transformer_state_dict)
+        assert model_checkpoint is not None, "Need to specify model checkpoint"
+        print(f"Loading model from {model_name}/{model_checkpoint}")
+        with open(f'{model_name}/vocab.json') as f:
+            old_vocab = WordVocabulary()
+            old_vocab.load_state_dict(json.load(f))
+        state_dict = torch.load(f'{model_name}/{model_checkpoint}', map_location=torch.device("cpu"))
+        load_model(model, state_dict, old_vocab, in_vocab)
     try:
         interface = create_model_interface(
             model,
@@ -337,17 +368,12 @@ def main_lm(args):
                 out_auxs,
             ) = build_datasets_lm_cls()
 
-    # use a vocabulary that is shared across all tasks
-    if args.shared_vocab:
-        in_vocab = WordVocabulary()
-        with open(args.shared_vocab) as f:
-            in_vocab.load_state_dict(json.load(f))
-        print(f'Loading shared vocab (len={len(in_vocab)})')
-
     if args.mode != "enc":
         if not args.not_lm:
             model, interface = get_base_transformer_lm(
-                args, in_vocab, model_name=args.model_load_path
+                args, in_vocab, 
+                model_name=args.model_load_path,
+                model_checkpoint=args.model_load_checkpoint
             )
         else:
             model, interface = get_base_transformer_model(
@@ -364,6 +390,10 @@ def main_lm(args):
         args.save_dir = os.path.join(dir_path, args.save_dir)
         if not os.path.exists(args.save_dir):
             os.makedirs(args.save_dir)
+        
+    with open(os.path.join(args.save_dir, "vocab.json"), "w") as f:
+        print('Saving vocab to {}'.format(os.path.join(args.save_dir, "vocab.json")))
+        json.dump(in_vocab.state_dict(), f)
 
     if args.callback:
         if (
@@ -545,6 +575,9 @@ def set_seed(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_load_path", type=str, default="")
+    # NEW: specify checkpoint on top of path
+    parser.add_argument("--model_load_checkpoint", type=str, default="")
+
     parser.add_argument("--save_dir", type=str, default="")
     parser.add_argument("--save_prefix", type=str, default="")
     parser.add_argument("--dataset", type=str, default="lm")
@@ -646,8 +679,6 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, default=None)
     # NEW: specify wandb directory (it's very large!)
     parser.add_argument("--wandb_dir", type=str, default=None)
-    # NEW: specify shared vocabulary across tasks
-    parser.add_argument("--shared_vocab", type=str, default=None)
 
     args = parser.parse_args()
     set_seed(args)

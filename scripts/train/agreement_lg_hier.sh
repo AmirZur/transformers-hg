@@ -8,8 +8,8 @@ python train_transformers.py \
     --eval_every 1000 \
     --seed $seed \
     --tied-embedding \
-    --shared_vocab data_utils/shared_vocab/shared_vocab.json \
     --save_every 100000 \
     --save_dir /nlp/scr/amirzur/checkpoint_agreement_lg_hier_s$seed \
     --grammar agreement_hr_v4 \
-    --data_dir grammar_gen_hier_data
+    --data_dir grammar_gen_hier_data \
+    --wandb_dir /nlp/scr/amirzur

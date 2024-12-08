@@ -8,7 +8,7 @@ python train_transformers.py \
     --eval_every 1000 \
     --seed $seed \
     --tied-embedding \
-    --shared_vocab data_utils/shared_vocab/shared_vocab.json \
     --save_every 100000 \
     --save_dir /nlp/scr/amirzur/checkpoint_agreement_lg_s$seed \
-    --grammar agreement_hr_v4_agreement_linear_v4
+    --grammar agreement_hr_v4_agreement_linear_v4 \
+    --wandb_dir /nlp/scr/amirzur

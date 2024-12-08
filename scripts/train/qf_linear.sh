@@ -9,7 +9,7 @@ python train_transformers.py \
     --eval_every 1000 \
     --seed $seed \
     --tied-embedding \
-    --shared_vocab data_utils/shared_vocab/shared_vocab.json \
     --save_every 150000 \
     --save_dir /nlp/scr/amirzur/checkpoint_qf_linear_s$seed \
-    --data_dir question_formation_linear_data
+    --data_dir question_formation_linear_data \
+    --wandb_dir /nlp/scr/amirzur
