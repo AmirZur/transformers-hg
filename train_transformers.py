@@ -603,6 +603,8 @@ def main_lm(args):
                 eval_keys = ["dev", "test"]
         elif args.dataset in ["question_de", "passiv"]:
             eval_keys = ["dev", "gen"]
+        elif args.dataset == "agreement_to_tense":
+            eval_keys = ["agree_val", "agree_g1_test", "agree_g2_test", "tense_val", "tense_test"]
         else:
             eval_keys = ["val", "test"]
     else:
