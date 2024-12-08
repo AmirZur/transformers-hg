@@ -9,7 +9,7 @@ python train_transformers.py \
     --seed $seed \
     --tied-embedding \
     --save_every 100000 \
-    --save_dir /nlp/scr/amirzur/checkpoint_agreement_sm_linear_s$seed \
+    --save_dir /nlp/scr/amirzur/checkpoint_agreement_sm_linear_svocab_s$seed \
     --grammar agreement_linear \
     --data_dir grammar_gen_linear_data \
     --wandb_dir /nlp/scr/amirzur \
