@@ -140,10 +140,11 @@ def load_model(lm, state_dict, old_vocab, new_vocab):
     mapping = []
     for i in range(len(new_vocab)):
         # if word is shared, get index of word in old vocab
-        new_word = new_vocab.inv_words[str(i)]
+        i = str(i) if '0' in new_vocab.inv_words else i # cast if needed
+        new_word = new_vocab.inv_words[i]
         if new_word in old_vocab.words:
             mapping.append(
-                (i, old_vocab.words[new_word])
+                (int(i), int(old_vocab.words[new_word]))
             )
     new_indices, old_indices = zip(*mapping)
     new_indices, old_indices = list(new_indices), list(old_indices)
