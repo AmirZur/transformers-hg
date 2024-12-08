@@ -9,9 +9,9 @@ python train_transformers.py \
     --eval_every 1000 \
     --seed 42 \
     --tied-embedding \
-    --shared_vocab data_utils/shared_vocab/shared_vocab.json \
     --save_every 1000000 \
     --save_dir ${from}_to_tense_linear \
     --data_dir tense_inflection_linear_data \
     --model_load_path $from \
-    --model_load_checkpoint $cp
+    --model_load_checkpoint $cp \
+    --wandb_dir /nlp/scr/amirzur
