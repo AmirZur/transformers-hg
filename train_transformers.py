@@ -387,7 +387,7 @@ def main_lm(args):
             "agree_g1_test": agree_data["g1_test"],
             "agree_g2_test": agree_data["g2_test"],
         }
-        in_vocab = merge_vocabs([agree_vocab, tense_vocab])
+        in_vocab = merge_vocabs([tense_vocab, agree_vocab])
     else:
         if args.mode != "enc":
             if not args.not_lm:
