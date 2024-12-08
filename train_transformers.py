@@ -371,11 +371,16 @@ def main_lm(args):
         # make sure datasets have same length
         tense_train = tense_data["train"].shuffle(seed=args.seed).select(range(len(agree_data["train"])))
         tense_val = tense_data["val"].shuffle(seed=args.seed).select(range(len(agree_data["val"])))
+        tense_train = tense_train.remove_columns(['prefix_len'])
+        tense_val = tense_val.remove_columns(['prefix_len'])
+
+        agree_train = agree_data["train"].remove_columns(['main_verb_ids', 'all_verb_ids'])
+        agree_val = agree_data["val"].remove_columns(['main_verb_ids', 'all_verb_ids'])
 
         # combine the two datasets
         datasets = {
-            "train": concatenate_datasets([agree_data["train"], tense_train]),
-            "val": concatenate_datasets([agree_data["val"], tense_val]),
+            "train": concatenate_datasets([agree_train, tense_train]),
+            "val": concatenate_datasets([agree_val, tense_val]),
             "tense_val": tense_data["val"],
             "tense_test": tense_data["test"],
             "agree_val": agree_data["val"],
