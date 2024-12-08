@@ -567,6 +567,9 @@ def main_lm(args):
                     return eval_callback_tense_inflection(
                         model, in_vocab, split
                     )
+            callback_fn = {
+                'custom': callback_fn
+            }
         elif args.dataset == "cogs":
 
             gen_file = None
@@ -609,7 +612,13 @@ def main_lm(args):
         elif args.dataset in ["question_de", "passiv"]:
             eval_keys = ["dev", "gen"]
         elif args.dataset == "agreement_to_tense":
-            eval_keys = ["agree_val", "agree_g1_test", "agree_g2_test", "tense_val", "tense_test"]
+            eval_keys = [
+                "agree_val", 
+                "agree_g1_test", 
+                "agree_g2_test", 
+                "tense_val", 
+                "tense_test"
+            ]
         else:
             eval_keys = ["val", "test"]
     else:
