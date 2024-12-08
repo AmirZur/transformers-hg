@@ -3,6 +3,7 @@ import numpy as np
 import random
 import os
 import torch
+from datasets import concatenate_datasets
 from data_utils.dyck_helpers import build_datasets_dyck, eval_callback_dyck
 from training_utils import *
 
@@ -148,9 +149,9 @@ def load_model(lm, state_dict, old_vocab, new_vocab):
             )
     new_indices, old_indices = zip(*mapping)
     new_indices, old_indices = list(new_indices), list(old_indices)
-    # lm.input_embedding.weight.data[new_indices] = state_dict['input_embedding.weight'][old_indices]
+    lm.input_embedding.weight.data[new_indices] = state_dict['input_embedding.weight'][old_indices]
     # ignore bias (seems to slightly hurt performance??)
-    # lm.output_map.bias.data[new_indices] = state_dict['output_map.bias'][old_indices]
+    lm.output_map.bias.data[new_indices] = state_dict['output_map.bias'][old_indices]
 
 def get_base_transformer_lm(args, in_vocab, model_name=None, model_checkpoint=None):
     try:
@@ -227,6 +228,13 @@ def get_base_transformer_cls(args, in_vocab, out_vocab, model_name=None):
     interface = create_model_interface(model, is_cls=True, is_lm=False)
     return model, interface
 
+def merge_vocabs(vocabs):
+    new_vocab = WordVocabulary()
+    for vocab in vocabs:
+        for w, i in vocab.words.items():
+            if w not in new_vocab.words:
+                new_vocab._add_word(w)
+    return new_vocab
 
 def main_lm(args):
     out_vocab = None
@@ -346,6 +354,35 @@ def main_lm(args):
                 build_datasets_passivization_cls()
             )
 
+    elif args.dataset == "agreement_to_tense":
+        # get simple agreement data
+        agree_data, agree_vocab, _ = build_datasets_simple_agreement(
+            args.grammar,
+            eval_keys=args.eval_keys.split(",") if args.eval_keys != "" else [],
+            include_simple_sents_only=args.pretrain,
+            grammar_tgt=args.grammar_tgt if args.grammar_tgt != "" else None,
+            data_dir=args.data_dir
+        )
+        # get ambiguous tense data
+        tense_data, tense_vocab, _ = build_datasets_tense_inflection(
+            include_only_present=args.exclude_identity,
+            include_only_past_and_simple_present=args.pretrain,
+        )
+        # make sure datasets have same length
+        tense_train = tense_data["train"].shuffle(seed=args.seed).select(range(len(agree_data["train"])))
+        tense_val = tense_data["val"].shuffle(seed=args.seed).select(range(len(agree_data["val"])))
+
+        # combine the two datasets
+        datasets = {
+            "train": concatenate_datasets([agree_data["train"], tense_train]),
+            "val": concatenate_datasets([agree_data["val"], tense_val]),
+            "tense_val": tense_data["val"],
+            "tense_test": tense_data["test"],
+            "agree_val": agree_data["val"],
+            "agree_g1_test": agree_data["g1_test"],
+            "agree_g2_test": agree_data["g2_test"],
+        }
+        in_vocab = merge_vocabs([agree_vocab, tense_vocab])
     else:
         if args.mode != "enc":
             if not args.not_lm:
@@ -506,6 +543,25 @@ def main_lm(args):
                         model, args.grammar, in_vocab, out_vocab, split
                     )
                 }
+        elif args.dataset == "agreement_to_tense":
+            def callback_fn(split):
+                if "agree" in split:
+                    split = split.replace("agree", "")
+                    return eval_callback_simple_agreement(
+                        model,
+                        in_vocab,
+                        split,
+                        args.grammar,
+                        grammar_tgt=(
+                            args.grammar_tgt if args.grammar_tgt != "" else None
+                        ),
+                        data_dir=args.data_dir
+                    )
+                else:
+                    split = split.replace("tense", "")
+                    return eval_callback_tense_inflection(
+                        model, in_vocab, split
+                    )
         elif args.dataset == "cogs":
 
             gen_file = None
