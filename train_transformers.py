@@ -229,7 +229,7 @@ def get_base_transformer_cls(args, in_vocab, out_vocab, model_name=None):
     return model, interface
 
 def merge_vocabs(vocabs):
-    new_vocab = WordVocabulary()
+    new_vocab = vocabs[0]
     for vocab in vocabs:
         for w, i in vocab.words.items():
             if w not in new_vocab.words:
