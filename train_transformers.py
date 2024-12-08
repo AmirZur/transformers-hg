@@ -551,7 +551,7 @@ def main_lm(args):
         elif args.dataset == "agreement_to_tense":
             def callback_fn(split):
                 if "agree" in split:
-                    split = split.replace("agree", "")
+                    split = split.replace("agree_", "")
                     return eval_callback_simple_agreement(
                         model,
                         in_vocab,
@@ -563,7 +563,7 @@ def main_lm(args):
                         data_dir=args.data_dir
                     )
                 else:
-                    split = split.replace("tense", "")
+                    split = split.replace("tense_", "")
                     return eval_callback_tense_inflection(
                         model, in_vocab, split
                     )
