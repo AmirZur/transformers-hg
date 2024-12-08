@@ -148,9 +148,9 @@ def load_model(lm, state_dict, old_vocab, new_vocab):
             )
     new_indices, old_indices = zip(*mapping)
     new_indices, old_indices = list(new_indices), list(old_indices)
-    lm.input_embedding.weight.data[new_indices] = state_dict['input_embedding.weight'][old_indices]
+    # lm.input_embedding.weight.data[new_indices] = state_dict['input_embedding.weight'][old_indices]
     # ignore bias (seems to slightly hurt performance??)
-    lm.output_map.bias.data[new_indices] = state_dict['output_map.bias'][old_indices]
+    # lm.output_map.bias.data[new_indices] = state_dict['output_map.bias'][old_indices]
 
 def get_base_transformer_lm(args, in_vocab, model_name=None, model_checkpoint=None):
     try:
