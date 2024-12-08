@@ -14,4 +14,5 @@ python train_transformers.py \
     --save_every 1000000 \
     --save_dir ${from}_to_qf_linear \
     --data_dir question_formation_linear_data \
-    --model_load_path $from/$cp
+    --model_load_path $from \
+    --model_load_checkpoint $cp

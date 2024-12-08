@@ -13,4 +13,5 @@ python train_transformers.py \
     --save_every 1000000 \
     --save_dir ${from}_to_tense_hier \
     --data_dir tense_inflection_hier_data \
-    --model_load_path $from/$cp
+    --model_load_path $from \
+    --model_load_checkpoint $cp
