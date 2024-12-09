@@ -182,7 +182,8 @@ def get_base_transformer_lm(args, in_vocab, model_name=None, model_checkpoint=No
             old_vocab = WordVocabulary()
             old_vocab.load_state_dict(json.load(f))
         state_dict = torch.load(f'{model_name}/{model_checkpoint}', map_location=torch.device("cpu"))
-        load_model(model, state_dict, old_vocab, in_vocab)
+        # load_model(model, state_dict, old_vocab, in_vocab)
+        model.load_state_dict(state_dict)
     try:
         interface = create_model_interface(
             model,
