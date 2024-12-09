@@ -646,7 +646,7 @@ def main_lm(args):
         elif args.dataset == "qf_and_tense":
             def callback_fn(split):
                 if "qf" in split:
-                    split = split.replace("agree_", "")
+                    split = split.replace("qf_", "")
                     return eval_lm_callback(
                         model, in_vocab, split, is_prefix_lm=args.is_prefix_lm,
                         data_name=args.data_dir
