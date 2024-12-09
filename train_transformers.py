@@ -241,14 +241,29 @@ def main_lm(args):
     out_vocab = None
     in_vocab = None
     if args.shared_vocab:
-        # in_vocab = WordVocabulary(split_punctuation=False)
-        # with open(args.shared_vocab) as f:
-        #     in_vocab.load_state_dict(json.load(f))
-        # print(f'Loading shared vocab from {args.shared_vocab} (len={len(in_vocab)})')
-        _, in_vocab, _ = build_datasets_tense_inflection(
-            include_only_present=args.exclude_identity,
-            include_only_past_and_simple_present=args.pretrain,
-        )
+        # tense contains all words in simple agreement (sm/lg)
+        if args.shared_vocab == "tense":
+            _, in_vocab, _ = build_datasets_tense_inflection(
+                include_only_present=args.exclude_identity,
+                include_only_past_and_simple_present=args.pretrain,
+            )
+        # merge all vocabs
+        elif args.shared_vocab == "all":
+            _, _, tense_sentences = build_datasets_tense_inflection(
+                include_only_present=args.exclude_identity,
+                include_only_past_and_simple_present=args.pretrain,
+            )
+            _, _, qf_sentences = build_datasets_lm(
+                include_only_quest=args.exclude_identity,
+                include_only_decls_nd_simpl_ques=args.pretrain,
+                include_only_complex_sents=args.train_on_compl_only,
+            )
+
+            in_vocab = WordVocabulary(
+                tense_sentences + qf_sentences, 
+                split_punctuation=False
+            )
+        print('Shared vocab size: {}'.format(len(in_vocab)))
 
     if args.dataset == "dyck":
         datasets, in_vocab, _ = build_datasets_dyck(vocab=args.dyck_vocab)
@@ -368,13 +383,14 @@ def main_lm(args):
                 build_datasets_passivization_cls()
             )
 
-    elif args.dataset == "agreement_to_tense":
+    elif args.dataset == "agreement_and_tense":
         # use tense vocab across tasks for now bc agreement vocab \subset tense vocab
         # (a bit wasteful, and need to do something else for qf)
-        _, in_vocab, _ = build_datasets_tense_inflection(
-            include_only_present=args.exclude_identity,
-            include_only_past_and_simple_present=args.pretrain,
-        )
+        # _, in_vocab, _ = build_datasets_tense_inflection(
+        #     include_only_present=args.exclude_identity,
+        #     include_only_past_and_simple_present=args.pretrain,
+        # )
+        # should (hopefully! rely on shared vocab)
 
         # get simple agreement data
         agree_data, _, _ = build_datasets_simple_agreement(
@@ -410,6 +426,40 @@ def main_lm(args):
             "agree_g1_test": agree_data["g1_test"],
             "agree_g2_test": agree_data["g2_test"],
         }
+    elif args.dataset == "qf_and_tense":
+        # use tense vocab across tasks for now bc agreement vocab \subset tense vocab
+        # (a bit wasteful, and need to do something else for qf)
+        # _, in_vocab, _ = build_datasets_tense_inflection(
+        #     include_only_present=args.exclude_identity,
+        #     include_only_past_and_simple_present=args.pretrain,
+        # )
+        # should (hopefully! rely on shared vocab)
+
+        # get simple agreement data
+        qf_data, _, _ = build_datasets_lm(
+            include_only_quest=args.exclude_identity,
+            include_only_decls_nd_simpl_ques=args.pretrain,
+            include_only_complex_sents=args.train_on_compl_only,
+            data_name=args.data_dir,
+            in_vocab=in_vocab
+        )
+        # get ambiguous tense data
+        tense_data, _, _ = build_datasets_tense_inflection(
+            include_only_present=args.exclude_identity,
+            include_only_past_and_simple_present=args.pretrain,
+            in_vocab=in_vocab
+        )
+        # make sure datasets have same length
+
+        # combine the two datasets
+        datasets = {
+            "train": concatenate_datasets([tense_data['train'], qf_data['train']]),
+            "val": concatenate_datasets([tense_data['val'], qf_data['val']]),
+            "tense_val": tense_data["val"],
+            "tense_test": tense_data["test"],
+            "qf_val": qf_data["val"],
+            "qf_test": qf_data["test"],
+        }
     else:
         if args.mode != "enc":
             if not args.not_lm:
@@ -417,7 +467,8 @@ def main_lm(args):
                     include_only_quest=args.exclude_identity,
                     include_only_decls_nd_simpl_ques=args.pretrain,
                     include_only_complex_sents=args.train_on_compl_only,
-                    data_name=args.data_dir
+                    data_name=args.data_dir,
+                    in_vocab=in_vocab
                 )
             else:
                 datasets, in_vocab, in_sents, out_sents = build_datasets_enc_dec(
@@ -570,7 +621,7 @@ def main_lm(args):
                         model, args.grammar, in_vocab, out_vocab, split
                     )
                 }
-        elif args.dataset == "agreement_to_tense":
+        elif args.dataset == "agreement_and_tense":
             def callback_fn(split):
                 if "agree" in split:
                     split = split.replace("agree_", "")
@@ -583,6 +634,22 @@ def main_lm(args):
                             args.grammar_tgt if args.grammar_tgt != "" else None
                         ),
                         data_dir=args.data_dir
+                    )
+                else:
+                    split = split.replace("tense_", "")
+                    return eval_callback_tense_inflection(
+                        model, in_vocab, split
+                    )
+            callback_fn = {
+                'custom': callback_fn
+            }
+        elif args.dataset == "qf_and_tense":
+            def callback_fn(split):
+                if "qf" in split:
+                    split = split.replace("agree_", "")
+                    return eval_lm_callback(
+                        model, in_vocab, split, is_prefix_lm=args.is_prefix_lm,
+                        data_name=args.data_dir
                     )
                 else:
                     split = split.replace("tense_", "")
@@ -633,11 +700,18 @@ def main_lm(args):
                 eval_keys = ["dev", "test"]
         elif args.dataset in ["question_de", "passiv"]:
             eval_keys = ["dev", "gen"]
-        elif args.dataset == "agreement_to_tense":
+        elif args.dataset == "agreement_and_tense":
             eval_keys = [
                 "agree_val", 
                 "agree_g1_test", 
                 "agree_g2_test", 
+                "tense_val", 
+                "tense_test"
+            ]
+        elif args.dataset == "qf_and_tense":
+            eval_keys = [
+                "qf_val", 
+                "qf_test", 
                 "tense_val", 
                 "tense_test"
             ]
@@ -776,7 +850,7 @@ if __name__ == "__main__":
     parser.add_argument("--wandb_dir", type=str, default=None)
     # NEW: specify shared vocabulary across tasks
     # parser.add_argument("--shared_vocab", type=str, default=None)
-    parser.add_argument("--shared_vocab", action="store_true")
+    parser.add_argument("--shared_vocab", type=str, default=None)
 
     args = parser.parse_args()
     set_seed(args)

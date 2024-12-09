@@ -118,6 +118,7 @@ def build_datasets_lm(
     include_only_complex_sents=False,
     data_dir=DATA_DIR,
     splits=["train", "val", "test"],
+    in_vocab=None
 ):
     if data_name is None:
         data_name = "question_formation_data"
@@ -139,7 +140,8 @@ def build_datasets_lm(
     )
     print("num examples: {}".format(len(in_sentences)))
 
-    in_vocab = WordVocabulary(in_sentences, split_punctuation=False)
+    if in_vocab is None:
+        in_vocab = WordVocabulary(in_sentences, split_punctuation=False)
     dataset = {}
     for split in splits:
         in_subset = get_subset(in_sentences, index_map[split])
