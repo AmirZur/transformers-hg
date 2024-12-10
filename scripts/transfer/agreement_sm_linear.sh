@@ -15,4 +15,5 @@ python train_transformers.py \
     --data_dir grammar_gen_linear_data \
     --model_load_path $from \
     --model_load_checkpoint $cp \
-    --wandb_dir /nlp/scr/amirzur
+    --wandb_dir /nlp/scr/amirzur \
+    --shared_vocab tense

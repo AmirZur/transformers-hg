@@ -15,4 +15,5 @@ python train_transformers.py \
     --data_dir question_formation_hier_data \
     --model_load_path $from \
     --model_load_checkpoint $cp \
-    --wandb_dir /nlp/scr/amirzur
+    --wandb_dir /nlp/scr/amirzur \
+    --shared_vocab all
