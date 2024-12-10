@@ -25,7 +25,7 @@ def count_num_auxs(text):
 
 def read_lm_data(
     splits,
-    data_name="question_formation_data",
+    data_name=None,
     filename_prefix="question",
     test_filename_prefix=None,
     do_process=True,
@@ -36,6 +36,9 @@ def read_lm_data(
     till_first_out_token=False,
     data_dir=DATA_DIR,
 ):
+    if data_name is None:
+        data_name = "question_formation_data"
+
     in_sentences = []
     index_map = {split: [] for split in splits}
     for split in splits:
