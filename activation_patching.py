@@ -1,4 +1,5 @@
 import argparse
+import os
 from typing import List
 from tqdm import tqdm
 import plotly.express as px
@@ -260,15 +261,18 @@ def main(
     )
 
     print('Saving results...')
+    save_dir = 'patching_results/' + model_name[model_name.rfind('/')+1:]
+    os.makedirs(save_dir, exist_ok=True)
+
     cf_type = 'hier' if hier else 'linear'
     if save_tensors:
-        torch.save(all_patching_results, f'{model_name}/{cf_dataset_name}_{cf_type}_patching_results.pt')
-        torch.save(all_patching_results_unnorm, f'{model_name}/{cf_dataset_name}_{cf_type}_patching_results_unnorm.pt')
-        torch.save(all_base_logit_diffs, f'{model_name}/{cf_dataset_name}_{cf_type}_base_logit_diffs.pt')
-        torch.save(all_src_logit_diffs, f'{model_name}/{cf_dataset_name}_{cf_type}_src_logit_diffs.pt')
+        torch.save(all_patching_results, f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results.pt')
+        torch.save(all_patching_results_unnorm, f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results_unnorm.pt')
+        torch.save(all_base_logit_diffs, f'{save_dir}/{cf_dataset_name}_{cf_type}_base_logit_diffs.pt')
+        torch.save(all_src_logit_diffs, f'{save_dir}/{cf_dataset_name}_{cf_type}_src_logit_diffs.pt')
 
-    show_results(all_patching_results, f'{model_name}/{cf_dataset_name}_{cf_type}_patching_results.png')
-    show_results(all_patching_results_unnorm, f'{model_name}/{cf_dataset_name}_{cf_type}_patching_results_unnorm.png')
+    show_results(all_patching_results, f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results.png')
+    show_results(all_patching_results_unnorm, f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results_unnorm.png')
     
     return all_patching_results, all_base_logit_diffs, all_src_logit_diffs
 
