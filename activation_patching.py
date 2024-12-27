@@ -10,7 +10,7 @@ from datasets import Dataset
 from nnsight import NNsight
 
 import collate
-from counterfactuals import agreement_cf, tense_cf
+from counterfactuals import agreement_cf, tense_cf, qf_cf
 from transformer_helpers import create_lm
 from data_utils import build_datasets_tense_inflection, build_datasets_lm
 from vocabulary import WordVocabulary
@@ -253,6 +253,8 @@ def main(
         cf_dataset = agreement_cf(hier=hier, g_name=g_name, num_per_generation=num_per_generation, seed=seed)
     elif cf_dataset_name == 'tense':
         cf_dataset = tense_cf(hier=hier, num_per_generation=num_per_generation, seed=seed)
+    elif cf_dataset_name == 'qf':
+        cf_dataset = qf_cf(hier=hier, num_per_generation=num_per_generation, seed=seed)
     else:
         raise ValueError(f'Unknown cf_dataset_name: {cf_dataset_name}')
     

@@ -5,7 +5,7 @@ import random
 import numpy as np
 
 from pcfg import PCFG
-from parse_q_and_tense import parse_tense, pos_to_parse_tense, convert_to_parse
+from parse_q_and_tense import pos_to_parse, pos_to_parse_tense, convert_to_parse
 
 def index(lst, item, default=-1):
     """
@@ -31,7 +31,7 @@ def get_matrix_verb_index_tense(parse):
     before_verb = list(flatten(before_verb))
     return len(before_verb)
 
-def generate_tense(cfg, start):
+def generate_from_cfg(cfg, start):
     if start not in cfg:
         return [[start.strip()]] #, [[]]
     else:
@@ -41,7 +41,7 @@ def generate_tense(cfg, start):
             expansion = [[]]
             # parse_tree = [[f"{start} -> {' '.join(production).strip()}"]]
             for symbol in production:
-                expansions_curr = generate_tense(cfg, symbol)
+                expansions_curr = generate_from_cfg(cfg, symbol)
                 # expansions_curr, parse_trees_curr = zip(*expansions_curr)
                 expansion = [
                     x + y for x in expansion for y in expansions_curr
@@ -233,7 +233,7 @@ def tense_cf(
         for prob, cont in conts:
             tense_cfg[key].append(cont.split())
 
-    templates = generate_tense(tense_cfg, 'ROOT')
+    templates = generate_from_cfg(tense_cfg, 'ROOT')
     print(f'Loaded {len(templates)} templates')
 
     pos_to_token = defaultdict(list)
@@ -530,5 +530,179 @@ def agreement_cf(
         print('Source:', example['source'])
         print('Source subject:', example['source'].split()[example['noun_indices'][0]])
         print('Source verb:', example['source'].split()[example['matrix_verb_index']])
+
+    return cf_dataset
+
+def get_matrix_verb_index_qf(parse):
+    return get_matrix_verb_index_tense(parse) + 1
+
+def sample_cf_main_qf(
+    sentence : List[str],
+    pos_to_token : dict,
+    pos_to_neg : dict
+):
+    """
+    Create counterfactual pair where the main auxiliary changes (neg -> pos, pos -> neg)
+
+    This dataset is used to test hierarchical grammar understanding in the model
+    """
+    pos = [w[0] if w != '.' else 'T' for w in sentence]
+    parse = convert_to_parse(" ".join(sentence), pos_to_parse(pos), do_postprocess=False)
+
+    # fill in sentence with randomly chosen tokens for each POS
+    base_sentence = []
+    for p in sentence:
+        if p in pos_to_token:
+            base_sentence.append(np.random.choice(pos_to_token[p]))
+        else:
+            base_sentence.append(p)
+    
+    # get index of subject noun & matrix verb (only edits made)
+    matrix_verb_idx = get_matrix_verb_index_qf(parse)
+    assert 0 <= matrix_verb_idx < len(sentence), "Can't find the matrix verb"
+    main_aux_idx = matrix_verb_idx - 1
+
+    cf_sentence = base_sentence.copy()
+    # make subject & matrix verb sg -> pl/ pl -> sg
+    cf_sentence[main_aux_idx] = pos_to_neg[cf_sentence[main_aux_idx]]
+
+    return {
+        'base': base_sentence,
+        'source': cf_sentence,
+        'aux_idx': main_aux_idx,
+    }
+
+def sample_cf_first_qf(
+    sentence : List[str],
+    pos_to_token : dict,
+    pos_to_neg : dict
+):
+    """
+    Create counterfactual pair where the first auxiliary changes (neg -> pos, pos -> neg)
+
+    This dataset is used to test hierarchical grammar understanding in the model
+    """
+    pos = [w[0] if w != '.' else 'T' for w in sentence]
+    parse = convert_to_parse(" ".join(sentence), pos_to_parse(pos), do_postprocess=False)
+
+    # fill in sentence with randomly chosen tokens for each POS
+    base_sentence = []
+    for p in sentence:
+        if p in pos_to_token:
+            base_sentence.append(np.random.choice(pos_to_token[p]))
+        else:
+            base_sentence.append(p)
+    
+    # get index of subject noun & matrix verb (only edits made)
+    first_aux_idx = min(
+        index(sentence, 'Aux_S', default=len(sentence)),
+        index(sentence, 'Aux_P', default=len(sentence)),
+        index(sentence, 'Aux_S_Neg', default=len(sentence)),
+        index(sentence, 'Aux_P_Neg', default=len(sentence)),
+    )
+    assert 0 <= first_aux_idx < len(sentence), "Can't find the first auxiliary"
+
+    cf_sentence = base_sentence.copy()
+    # make subject & matrix verb sg -> pl/ pl -> sg
+    cf_sentence[first_aux_idx] = pos_to_neg[cf_sentence[first_aux_idx]]
+
+    return {
+        'base': base_sentence,
+        'source': cf_sentence,
+        'aux_idx': first_aux_idx,
+    }
+
+def preprocess_example_qf(
+    example : dict,
+):
+    """
+    Preprocess input for the model
+    Input: present tense sentence, ends in .
+    Output: past tense sentence . quest\tpresent tense sentence .
+    """
+    base, source = example['base'], example['source']
+
+    def to_question(sentence, aux_idx):
+        # move aux to front
+        if sentence[-1] != '.':
+            sentence.append('.')
+        question = [sentence[aux_idx]] + sentence[:aux_idx] + sentence[aux_idx + 1:]
+        return question
+
+    # we want to compare which auxiliary was moved to the front (first thing following "quest")
+    cf_logit_index = len(base) + 1
+
+    base = base + ['quest'] + to_question(base, example['aux_idx'])
+    source = source + ['quest'] + to_question(source, example['aux_idx'])
+
+    return {
+        'base': " ".join(base),
+        'source': " ".join(source),
+        'matrix_verb_index': cf_logit_index,
+        'cf_label': base[cf_logit_index],
+        'base_label': source[cf_logit_index]
+    }
+
+def qf_cf(
+    num_per_generation : int = 2,
+    hier : bool = False,
+    seed : int = 0,
+    verbose : bool = True
+):
+    # set random seed
+    random.seed(seed)
+    np.random.seed(seed)
+
+    qf_gr = defaultdict(list)
+    with open('data_utils/cfgs/qf_cf.gr') as f:
+        for line in f:
+            # skip empty lines and comments
+            if line.strip() != '' and not line.strip().startswith('#'):
+                prob, key, cont = line.strip().split('\t')
+                prob = float(prob)
+                qf_gr[key].append((prob, cont.strip()))
+
+    qf_cfg = defaultdict(list)
+    for key, conts in qf_gr.items():
+        for prob, cont in conts:
+            qf_cfg[key].append(cont.split())
+
+    templates = generate_from_cfg(qf_cfg, 'ROOT')
+    print(f'Loaded {len(templates)} templates')
+
+    pos_to_token = defaultdict(list)
+    with open('data_utils/cfgs/qf_pos_to_token.tsv') as f:
+        for line in f:
+            if line.strip() == '':
+                continue
+            _, pos, token = line.strip().split('\t')
+            pos_to_token[pos].append(token)
+    
+    pos_to_neg = {
+        'does': 'doesn\'t',
+        'doesn\'t': 'does',
+        'do': 'don\'t',
+        'don\'t': 'do',
+    }
+    
+    cf_dataset = []
+    for template in templates:
+        for _ in range(num_per_generation):
+            if hier:
+                sampled_cf = sample_cf_main_qf(template, pos_to_token, pos_to_neg)
+            else:
+                sampled_cf = sample_cf_first_qf(template, pos_to_token, pos_to_neg)
+            example = preprocess_example_qf(sampled_cf)
+            cf_dataset.append(example)
+        
+    print(f'Generated {len(cf_dataset)} examples')
+
+    if verbose:
+        example = cf_dataset[0]
+        print('Example (index 0):')
+        print('Base:', example['base'])
+        print('Base aux:', example['base'].split()[example['matrix_verb_index']])
+        print('Source:', example['source'])
+        print('Source aux:', example['source'].split()[example['matrix_verb_index']])
 
     return cf_dataset
