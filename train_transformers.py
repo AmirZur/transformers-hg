@@ -449,7 +449,8 @@ def main_lm(args):
             include_only_past_and_simple_present=args.pretrain,
             in_vocab=in_vocab
         )
-        # make sure datasets have same length
+        # subsample from tense - the goal is to emphasize the qf task
+        tense_train = tense_data['train'].shuffle(seed=args.seed).select(range(10000))
 
         # combine the two datasets
         datasets = {
@@ -712,8 +713,10 @@ def main_lm(args):
             eval_keys = [
                 "qf_val", 
                 "qf_test", 
+                "qf_linear",
                 "tense_val", 
-                "tense_test"
+                "tense_test",
+                "tense_linear"
             ]
         else:
             eval_keys = ["val", "test"]
@@ -856,7 +859,7 @@ if __name__ == "__main__":
     set_seed(args)
     ### NOTE: change this to your own wandb project and entity!
     wandb_logger = wandb.init(
-        project="transfer_syntax", entity=WANDB_ENTITY_NAME, config=vars(args),
+        project="flavors_of_abstraction", entity=WANDB_ENTITY_NAME, config=vars(args),
         dir=args.wandb_dir
     )
     # To work with wandb sweeps
