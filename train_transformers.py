@@ -427,27 +427,21 @@ def main_lm(args):
             "agree_g2_test": agree_data["g2_test"],
         }
     elif args.dataset == "qf_and_tense":
-        # use tense vocab across tasks for now bc agreement vocab \subset tense vocab
-        # (a bit wasteful, and need to do something else for qf)
-        # _, in_vocab, _ = build_datasets_tense_inflection(
-        #     include_only_present=args.exclude_identity,
-        #     include_only_past_and_simple_present=args.pretrain,
-        # )
-        # should (hopefully! rely on shared vocab)
-
         # get simple agreement data
         qf_data, _, _ = build_datasets_lm(
             include_only_quest=args.exclude_identity,
             include_only_decls_nd_simpl_ques=args.pretrain,
             include_only_complex_sents=args.train_on_compl_only,
             data_name=args.data_dir,
-            in_vocab=in_vocab
+            in_vocab=in_vocab,
+            splits=['train', 'val', 'test', 'linear']
         )
         # get ambiguous tense data
         tense_data, _, _ = build_datasets_tense_inflection(
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
-            in_vocab=in_vocab
+            in_vocab=in_vocab,
+            splits=['train', 'val', 'test', 'linear']
         )
         # subsample from tense - the goal is to emphasize the qf task
         tense_train = tense_data['train'].shuffle(seed=args.seed).select(range(10000))
@@ -458,8 +452,10 @@ def main_lm(args):
             "val": concatenate_datasets([tense_data['val'], qf_data['val']]),
             "tense_val": tense_data["val"],
             "tense_test": tense_data["test"],
+            "tense_linear": tense_data["linear"],
             "qf_val": qf_data["val"],
             "qf_test": qf_data["test"],
+            "qf_linear": qf_data["linear"],
         }
     else:
         if args.mode != "enc":

@@ -315,14 +315,14 @@ def build_datasets_tense_inflection(
     include_only_past_and_simple_present=False,
     data_dir=None,
     in_vocab=None,
+    splits=["train", "val", "test"]
 ):
     if data_dir is None:
         data_dir = "tense_inflection_data"
 
     def get_subset(elem_list, idx_list):
         return [elem_list[idx] for idx in idx_list]
-
-    splits = ["train", "val", "test"]
+    
     in_sentences, index_map = read_ti_data(
         splits,
         include_only_present=include_only_present,
