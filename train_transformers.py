@@ -444,7 +444,7 @@ def main_lm(args):
             splits=['train', 'val', 'test', 'linear']
         )
         # subsample from tense - the goal is to emphasize the qf task
-        tense_train = tense_data['train'].shuffle(seed=args.seed).select(range(10000))
+        tense_train = tense_data['train'].shuffle(seed=args.seed).select(range(1000))
 
         # combine the two datasets
         datasets = {
