@@ -196,6 +196,7 @@ def preprocess_example_tense(
     # sentence is repeated, so get both indices (shifted by sentence + 'PRESENT')
     noun_idxs = [example['noun_index'], example['noun_index'] + len(base) + 1]
     matrix_verb_index = example['matrix_verb_index'] + len(base) + 1
+    last_token_index = len(base_past) + 1 # indexes PRESENT
 
     base = " ".join(base_past + ['PRESENT'] + base)
     source = " ".join(source_past + ['PRESENT'] + source)
@@ -206,7 +207,8 @@ def preprocess_example_tense(
         'noun_indices': noun_idxs,
         'matrix_verb_index': matrix_verb_index,
         'cf_label': example['cf_label'],
-        'base_label': example['base_label']
+        'base_label': example['base_label'],
+        'last_token_index': last_token_index
     }
 
 def tense_cf(
@@ -631,6 +633,7 @@ def preprocess_example_qf(
 
     # we want to compare which auxiliary was moved to the front (first thing following "quest")
     cf_logit_index = len(base) + 1
+    last_token_index = len(base) + 1 # indexes quest (left-shifted from logits!)
 
     base = base + ['quest'] + to_question(base, example['aux_idx'])
     source = source + ['quest'] + to_question(source, example['aux_idx'])
@@ -640,7 +643,8 @@ def preprocess_example_qf(
         'source': " ".join(source),
         'matrix_verb_index': cf_logit_index,
         'cf_label': source[cf_logit_index],
-        'base_label': base[cf_logit_index]
+        'base_label': base[cf_logit_index],
+        'last_token_index': last_token_index
     }
 
 def qf_cf(

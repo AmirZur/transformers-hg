@@ -252,6 +252,8 @@ def main_lm(args):
             _, _, tense_sentences = build_datasets_tense_inflection(
                 include_only_present=args.exclude_identity,
                 include_only_past_and_simple_present=args.pretrain,
+                # NEW: use tense reinflection with auxiliaries as transfer task
+                data_dir='tense_inflection_aux_data'
             )
             _, _, qf_sentences = build_datasets_lm(
                 include_only_quest=args.exclude_identity,
@@ -441,10 +443,12 @@ def main_lm(args):
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
             in_vocab=in_vocab,
-            splits=['train', 'val', 'test', 'linear']
+            # NEW: use tense reinflection with auxiliaries as transfer task
+            data_dir='tense_inflection_aux_data',
+            splits=['train', 'val', 'test'] # no linear data (for now?)
         )
         # subsample from tense - the goal is to emphasize the qf task
-        tense_train = tense_data['train'].shuffle(seed=args.seed).select(range(1000))
+        tense_train = tense_data['train'].shuffle(seed=args.seed).select(range(10000))
 
         # combine the two datasets
         datasets = {
@@ -452,7 +456,7 @@ def main_lm(args):
             "val": concatenate_datasets([tense_data['val'], qf_data['val']]),
             "tense_val": tense_data["val"],
             "tense_test": tense_data["test"],
-            "tense_linear": tense_data["linear"],
+            # "tense_linear": tense_data["linear"],
             "qf_val": qf_data["val"],
             "qf_test": qf_data["test"],
             "qf_linear": qf_data["linear"],
@@ -712,7 +716,7 @@ def main_lm(args):
                 "qf_linear",
                 "tense_val", 
                 "tense_test",
-                "tense_linear"
+                # "tense_linear"
             ]
         else:
             eval_keys = ["val", "test"]
