@@ -639,8 +639,8 @@ def preprocess_example_qf(
         'base': " ".join(base),
         'source': " ".join(source),
         'matrix_verb_index': cf_logit_index,
-        'cf_label': base[cf_logit_index],
-        'base_label': source[cf_logit_index]
+        'cf_label': source[cf_logit_index],
+        'base_label': base[cf_logit_index]
     }
 
 def qf_cf(

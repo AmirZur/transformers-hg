@@ -1,6 +1,6 @@
 import torch.nn
 from layers.transformer import Transformer
-from layers.transformer import GatedTransformer
+# from layers.transformer import GatedTransformer
 from layers.transformer.transformer import TransformerDecoderWithLayer
 from models import TransformerEncDecModel, TransformerDecModel
 from interfaces import (
@@ -39,7 +39,7 @@ def create_lm(
             n_heads,
             num_encoder_layers=encoder_n_layers,
             pos_scale=pos_scale,
-            transformer=Transformer if not gated_model else GatedTransformer,
+            transformer=Transformer if not gated_model else None, # GatedTransformer,
             dropout=dropout,
             tied_embedding=tied_embedding,
             **args,
