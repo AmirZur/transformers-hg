@@ -655,7 +655,9 @@ def main_lm(args):
                 else:
                     split = split.replace("tense_", "")
                     return eval_callback_tense_inflection(
-                        model, in_vocab, split
+                        model, in_vocab, split,
+                        # NEW: use tense reinflection with auxiliaries as transfer task
+                        data_dir='tense_inflection_aux_data'
                     )
             callback_fn = {
                 'custom': callback_fn
