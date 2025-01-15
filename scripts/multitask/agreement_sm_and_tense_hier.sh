@@ -9,8 +9,8 @@ python train_transformers.py \
     --seed $seed \
     --tied-embedding \
     --save_every 100000 \
-    --save_dir /nlp/scr/amirzur/multitask_agreement_lg_and_tense_hier_s$seed \
-    --grammar agreement_hr_v4_agreement_linear_v4 \
+    --save_dir /nlp/scr/amirzur/multitask_agreement_sm_and_tense_hier_s$seed \
+    --grammar agreement_hr_agreement_linear \
     --data_dir tense_inflection_hier_data \
     --wandb_dir /nlp/scr/amirzur \
     --shared_vocab tense
