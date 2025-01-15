@@ -635,12 +635,13 @@ def main_lm(args):
                         grammar_tgt=(
                             args.grammar_tgt if args.grammar_tgt != "" else None
                         ),
-                        data_dir=args.data_dir
+                        # data_dir=args.data_dir
                     )
                 else:
                     split = split.replace("tense_", "")
                     return eval_callback_tense_inflection(
-                        model, in_vocab, split
+                        model, in_vocab, split,
+                        data_dir=args.data_dir
                     )
             callback_fn = {
                 'custom': callback_fn
