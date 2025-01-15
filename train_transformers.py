@@ -421,8 +421,8 @@ def main_lm(args):
 
         # combine the two datasets
         datasets = {
-            "train": tense_train, # concatenate_datasets([agree_train, tense_train]),
-            "val": tense_val, # concatenate_datasets([agree_val, tense_val]),
+            "train": concatenate_datasets([agree_train, tense_train]),
+            "val": concatenate_datasets([agree_val, tense_val]),
             "tense_val": tense_data["val"],
             "tense_test": tense_data["test"],
             "agree_val": agree_data["val"],
