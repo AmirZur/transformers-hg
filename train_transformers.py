@@ -394,7 +394,7 @@ def main_lm(args):
         # )
         # should (hopefully! rely on shared vocab)
 
-        # get simple agreement data
+        # get (ambiguous) simple agreement data
         agree_data, _, _ = build_datasets_simple_agreement(
             args.grammar,
             eval_keys=args.eval_keys.split(",") if args.eval_keys != "" else [],
@@ -403,65 +403,107 @@ def main_lm(args):
             # data_dir=args.data_dir,
             in_vocab=in_vocab
         )
-        # get ambiguous tense data
+        # get (ambiguous) tense data
+        tense_splits = ['train', 'val', 'test', 'linear'] if 'aux' not in args.data_dir else ['train', 'val', 'test']
         tense_data, _, _ = build_datasets_tense_inflection(
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
             in_vocab=in_vocab,
+            # NEW: data dir only specifies tense data!
             data_dir=args.data_dir,
+            # tense inflection aux data doesn't have linear splits (yet)
+            splits=tense_splits
         )
         # make sure datasets have same length
-        tense_train = tense_data["train"] # .shuffle(seed=args.seed).select(range(len(agree_data["train"])))
-        tense_val = tense_data["val"] # .shuffle(seed=args.seed).select(range(len(agree_data["val"])))
+        tense_train = tense_data["train"].shuffle(seed=42).select(range(len(agree_data["train"])))
+        tense_val = tense_data["val"].shuffle(seed=42).select(range(len(agree_data["val"])))
         tense_train = tense_train.remove_columns(['prefix_len'])
         tense_val = tense_val.remove_columns(['prefix_len'])
 
         agree_train = agree_data["train"].remove_columns(['main_verb_ids', 'all_verb_ids'])
         agree_val = agree_data["val"].remove_columns(['main_verb_ids', 'all_verb_ids'])
 
+        if args.multitask_ratio:
+            args.multitask_ratio = args.multitask_ratio / 100.
+            if args.multitask_ratio == 1.0:
+                train, val = agree_train, agree_val
+            elif args.multitask_ratio == 0.0:
+                train, val = tense_train, tense_val
+            else:
+                n_total = len(agree_train) + len(tense_train)
+                n_agree = int(args.multitask_ratio * n_total)
+                n_tense = n_total - n_agree
+                agree_train = agree_train.shuffle(seed=42).select(range(n_agree))
+                tense_train = tense_train.shuffle(seed=42).select(range(n_tense))
+                train = concatenate_datasets([agree_train, tense_train])
+                val = concatenate_datasets([agree_val, tense_val])
+
         # combine the two datasets
         datasets = {
-            "train": concatenate_datasets([agree_train, tense_train]),
-            "val": concatenate_datasets([agree_val, tense_val]),
+            "train": train,
+            "val": val,
             "tense_val": tense_data["val"],
             "tense_test": tense_data["test"],
             "agree_val": agree_data["val"],
             "agree_g1_test": agree_data["g1_test"],
             "agree_g2_test": agree_data["g2_test"],
         }
+
+        if "linear" in tense_splits:
+            datasets["tense_linear"] = tense_data["linear"]
+
     elif args.dataset == "qf_and_tense":
         # get simple agreement data
         qf_data, _, _ = build_datasets_lm(
             include_only_quest=args.exclude_identity,
             include_only_decls_nd_simpl_ques=args.pretrain,
             include_only_complex_sents=args.train_on_compl_only,
-            data_name=args.data_dir,
+            # data_name=args.data_dir,
             in_vocab=in_vocab,
             splits=['train', 'val', 'test', 'linear']
         )
         # get ambiguous tense data
+        tense_splits = ['train', 'val', 'test', 'linear'] if 'aux' not in args.data_dir else ['train', 'val', 'test']
         tense_data, _, _ = build_datasets_tense_inflection(
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
             in_vocab=in_vocab,
-            # NEW: use tense reinflection with auxiliaries as transfer task
-            # data_dir='tense_inflection_aux_data',
-            splits=['train', 'val', 'test', 'linear']
+            # NEW: data dir only specifies tense data!
+            data_dir=args.data_dir,
+            splits=tense_splits
         )
         # subsample from tense - the goal is to emphasize the qf task
-        tense_train = tense_data['train'].shuffle(seed=args.seed).select(range(10000))
+        assert len(tense_data['train']) == len(qf_data['train']), "Tense and QF train datasets must have the same length!"
+
+        if args.multitask_ratio:
+            args.multitask_ratio = args.multitask_ratio / 100.
+            if args.multitask_ratio == 1.0:
+                train, val = qf_data['train'], qf_data['val']
+            elif args.multitask_ratio == 0.0:
+                train, val = tense_data['train'], tense_data['val']
+            else:
+                n_total = len(qf_data['train']) + len(tense_data['train'])
+                n_qf = int(args.multitask_ratio * n_total)
+                n_tense = n_total - n_qf
+                qf_data['train'] = qf_data['train'].shuffle(seed=42).select(range(n_qf))
+                tense_data['train'] = tense_data['train'].shuffle(seed=42).select(range(n_tense))
+                train = concatenate_datasets([qf_data['train'], tense_data['train']])
+                val = concatenate_datasets([qf_data['val'], tense_data['val']])
 
         # combine the two datasets
         datasets = {
-            "train": concatenate_datasets([tense_train, qf_data['train']]),
-            "val": concatenate_datasets([tense_data['val'], qf_data['val']]),
+            "train": train,
+            "val": val,
             "tense_val": tense_data["val"],
             "tense_test": tense_data["test"],
-            "tense_linear": tense_data["linear"],
             "qf_val": qf_data["val"],
             "qf_test": qf_data["test"],
             "qf_linear": qf_data["linear"],
         }
+
+        if "linear" in tense_splits:
+            datasets["tense_linear"] = tense_data["linear"]
+
     else:
         if args.mode != "enc":
             if not args.not_lm:
@@ -652,14 +694,14 @@ def main_lm(args):
                     split = split.replace("qf_", "")
                     return eval_lm_callback(
                         model, in_vocab, split, is_prefix_lm=args.is_prefix_lm,
-                        data_name=args.data_dir
+                        # data_name=args.data_dir
                     )
                 else:
                     split = split.replace("tense_", "")
                     return eval_callback_tense_inflection(
                         model, in_vocab, split,
-                        # NEW: use tense reinflection with auxiliaries as transfer task
-                        # data_dir='tense_inflection_aux_data'
+                        # note: data_dir only specifies tense data!
+                        data_dir=args.data_dir
                     )
             callback_fn = {
                 'custom': callback_fn
@@ -713,6 +755,9 @@ def main_lm(args):
                 "tense_val", 
                 "tense_test"
             ]
+            if 'tense_linear' in datasets:
+                eval_keys.append('tense_linear')
+
         elif args.dataset == "qf_and_tense":
             eval_keys = [
                 "qf_val", 
@@ -720,8 +765,10 @@ def main_lm(args):
                 "qf_linear",
                 "tense_val", 
                 "tense_test",
-                "tense_linear"
             ]
+            if 'tense_linear' in datasets:
+                eval_keys.append('tense_linear')
+
         else:
             eval_keys = ["val", "test"]
     else:
@@ -856,8 +903,9 @@ if __name__ == "__main__":
     # NEW: specify wandb directory (it's very large!)
     parser.add_argument("--wandb_dir", type=str, default=None)
     # NEW: specify shared vocabulary across tasks
-    # parser.add_argument("--shared_vocab", type=str, default=None)
     parser.add_argument("--shared_vocab", type=str, default=None)
+    # NEW: specify multitask ratio
+    parser.add_argument("--multitask_ratio", type=int, default=None)
 
     args = parser.parse_args()
     set_seed(args)
