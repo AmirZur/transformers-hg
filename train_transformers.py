@@ -252,8 +252,8 @@ def main_lm(args):
             _, _, tense_sentences = build_datasets_tense_inflection(
                 include_only_present=args.exclude_identity,
                 include_only_past_and_simple_present=args.pretrain,
-                # NEW: use tense reinflection with auxiliaries as transfer task
-                # data_dir='tense_inflection_aux_data'
+                # note: data_dir only specifies tense data!
+                data_dir=args.data_dir,
             )
             _, _, qf_sentences = build_datasets_lm(
                 include_only_quest=args.exclude_identity,
