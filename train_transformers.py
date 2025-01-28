@@ -479,7 +479,7 @@ def main_lm(args):
             splits=tense_splits
         )
         # subsample from tense - the goal is to emphasize the qf task
-        if 'past' not in args.data_dir:
+        if args.data_dir is None or 'past' not in args.data_dir:
             assert len(tense_data['train']) == len(qf_data['train']), "Tense and QF train datasets must have the same length!"
 
         if 'past' in args.data_dir:
