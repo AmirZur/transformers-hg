@@ -404,7 +404,9 @@ def main_lm(args):
             in_vocab=in_vocab
         )
         # get (ambiguous) tense data
-        tense_splits = ['train', 'val', 'test', 'linear'] if 'aux' not in args.data_dir else ['train', 'val', 'test']
+        tense_splits = ['train', 'val', 'test', 'linear'] 
+        if args.data_dir and 'aux' in args.data_dir:
+            tense_splits = ['train', 'val', 'test']
         tense_data, _, _ = build_datasets_tense_inflection(
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
@@ -463,7 +465,9 @@ def main_lm(args):
             splits=['train', 'val', 'test', 'linear']
         )
         # get ambiguous tense data
-        tense_splits = ['train', 'val', 'test', 'linear'] if 'aux' not in args.data_dir else ['train', 'val', 'test']
+        tense_splits = ['train', 'val', 'test', 'linear'] 
+        if args.data_dir and 'aux' in args.data_dir:
+            tense_splits = ['train', 'val', 'test']
         tense_data, _, _ = build_datasets_tense_inflection(
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
