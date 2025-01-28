@@ -425,7 +425,7 @@ def main_lm(args):
         agree_train = agree_data["train"].remove_columns(['main_verb_ids', 'all_verb_ids'])
         agree_val = agree_data["val"].remove_columns(['main_verb_ids', 'all_verb_ids'])
 
-        if args.multitask_ratio:
+        if args.multitask_ratio is not None:
             args.multitask_ratio = args.multitask_ratio / 100.
             if args.multitask_ratio == 1.0:
                 train, val = agree_train, agree_val
@@ -439,6 +439,8 @@ def main_lm(args):
                 tense_train = tense_train.shuffle(seed=42).select(range(n_tense))
                 train = concatenate_datasets([agree_train, tense_train])
                 val = concatenate_datasets([agree_val, tense_val])
+        else: # treat as 0
+            train, val = tense_train, tense_val
 
         # combine the two datasets
         datasets = {
@@ -479,7 +481,7 @@ def main_lm(args):
         # subsample from tense - the goal is to emphasize the qf task
         assert len(tense_data['train']) == len(qf_data['train']), "Tense and QF train datasets must have the same length!"
 
-        if args.multitask_ratio:
+        if args.multitask_ratio is not None:
             args.multitask_ratio = args.multitask_ratio / 100.
             if args.multitask_ratio == 1.0:
                 train, val = qf_data['train'], qf_data['val']
@@ -493,6 +495,8 @@ def main_lm(args):
                 tense_data['train'] = tense_data['train'].shuffle(seed=42).select(range(n_tense))
                 train = concatenate_datasets([qf_data['train'], tense_data['train']])
                 val = concatenate_datasets([qf_data['val'], tense_data['val']])
+        else: # treat as 0
+            train, val = tense_train, tense_val
 
         # combine the two datasets
         datasets = {
