@@ -479,9 +479,14 @@ def main_lm(args):
             splits=tense_splits
         )
         # subsample from tense - the goal is to emphasize the qf task
-        assert len(tense_data['train']) == len(qf_data['train']), "Tense and QF train datasets must have the same length!"
+        if 'past' not in args.data_dir:
+            assert len(tense_data['train']) == len(qf_data['train']), "Tense and QF train datasets must have the same length!"
 
-        if args.multitask_ratio is not None:
+        if 'past' in args.data_dir:
+            # ignore size differences, just concatenate together
+            train = concatenate_datasets([qf_data['train'], tense_data['train']])
+            val = concatenate_datasets([qf_data['val'], tense_data['val']])
+        elif args.multitask_ratio is not None:
             args.multitask_ratio = args.multitask_ratio / 100.
             if args.multitask_ratio == 1.0:
                 train, val = qf_data['train'], qf_data['val']
