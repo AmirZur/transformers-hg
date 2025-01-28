@@ -482,7 +482,7 @@ def main_lm(args):
         if args.data_dir is None or 'past' not in args.data_dir:
             assert len(tense_data['train']) == len(qf_data['train']), "Tense and QF train datasets must have the same length!"
 
-        if 'past' in args.data_dir:
+        if args.data_dir is not None and 'past' in args.data_dir:
             # ignore size differences, just concatenate together
             train = concatenate_datasets([qf_data['train'], tense_data['train']])
             val = concatenate_datasets([qf_data['val'], tense_data['val']])
