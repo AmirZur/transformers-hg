@@ -253,7 +253,7 @@ def main_lm(args):
                 include_only_present=args.exclude_identity,
                 include_only_past_and_simple_present=args.pretrain,
                 # note: data_dir only specifies tense data!
-                data_dir=args.data_dir,
+                # data_dir=args.data_dir,
             )
             _, _, qf_sentences = build_datasets_lm(
                 include_only_quest=args.exclude_identity,

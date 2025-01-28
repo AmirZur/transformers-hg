@@ -9,7 +9,7 @@ python train_transformers.py \
     --eval_every 1000 \
     --seed 42 \
     --tied-embedding \
-    --save_every 1000000 \
+    --save_every 100000 \
     --save_dir ${from}_to_agree_sm_hier \
     --grammar agreement_hr \
     --data_dir grammar_gen_hier_data \

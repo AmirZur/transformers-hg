@@ -10,7 +10,7 @@ python train_transformers.py \
     --eval_every 1000 \
     --seed 42 \
     --tied-embedding \
-    --save_every 1000000 \
+    --save_every 100000 \
     --save_dir ${from}_to_qf_linear \
     --data_dir question_formation_linear_data \
     --model_load_path $from \
