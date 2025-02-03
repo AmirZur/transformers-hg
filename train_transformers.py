@@ -798,6 +798,7 @@ def main_lm(args):
         eval_every=args.eval_every,
         max_steps=args.max_train_steps,
         train_batch_size=args.batch_size,
+        num_embed_warmup_steps=args.num_embed_warmup_steps
     )
 
 
@@ -919,6 +920,8 @@ if __name__ == "__main__":
     parser.add_argument("--shared_vocab", type=str, default=None)
     # NEW: specify multitask ratio
     parser.add_argument("--multitask_ratio", type=int, default=None)
+    # NEW: specify number of warmup steps for embedding layer
+    parser.add_argument("--num_embed_warmup_steps", type=int, default=None)
 
     args = parser.parse_args()
     set_seed(args)

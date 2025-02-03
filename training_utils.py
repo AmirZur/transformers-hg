@@ -228,6 +228,13 @@ def eval_callback(
     return best_accs, curr_accs
 
 
+def freeze_params(model, freeze : bool = True):
+    # freeze all parameters except input_embedding.weight and output_map.bias
+    for name, param in model.model.named_parameters():
+        if name not in ['input_embedding.weight', 'output_map.bias']:
+            param.requires_grad = (not freeze)
+
+
 def train_loop(
     args,
     model,
@@ -243,6 +250,7 @@ def train_loop(
     eval_every=1000,
     max_steps=20000000,
     num_warmup_steps=10000,
+    num_embed_warmup_steps=None,
 ):
     num_steps = 0
     max_grad_norm = 1
@@ -324,6 +332,10 @@ def train_loop(
                                 save_dir, "checkpoint_{}.pickle".format(num_steps)
                             ),
                         )
+
+                # freeze embeddings for the first num_embed_warmup_steps
+                if num_embed_warmup_steps is not None:
+                    freeze_params(model, freeze=(num_steps < num_embed_warmup_steps))
 
                 if type(model) != torch.nn.Module:
                     model.model.train()

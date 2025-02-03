@@ -1,5 +1,7 @@
+# special file for when we transfer from multi-qf, which has a different vocabulary
 from=$1
 cp=$2
+warmup=$3
 
 python train_transformers.py \
     --encoder_n_layers 6 \
@@ -15,4 +17,5 @@ python train_transformers.py \
     --model_load_path $from \
     --model_load_checkpoint $cp \
     --wandb_dir /nlp/scr/amirzur \
-    --shared_vocab all
+    --shared_vocab all \
+    --num_embed_warmup_steps $warmup
