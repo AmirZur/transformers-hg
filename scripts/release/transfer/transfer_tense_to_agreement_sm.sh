@@ -28,7 +28,7 @@ nlprun \
     -o logs/transfer_tense_r0_to_agree_sm_linear_s2.log 'bash scripts/transfer/agreement_sm_linear.sh /nlp/scr/amirzur/agreement_sm_and_tense_r0_s2 checkpoint_100000.pickle'
 
 #######################
-# 50-50 agree-tense      #
+# 50-50 agree-tense   #
 #######################
 # tense formation ambiguous to agreement large hierarchical
 nlprun \
