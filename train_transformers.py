@@ -705,19 +705,19 @@ def main_lm(args):
                 'custom': callback_fn
             }
         elif args.dataset == "qf_and_tense":
+            # NOTE: args.data_dir specifies data dir for EITHER tense or qf (read based on name)
             def callback_fn(split):
                 if "qf" in split:
                     split = split.replace("qf_", "")
                     return eval_lm_callback(
                         model, in_vocab, split, is_prefix_lm=args.is_prefix_lm,
-                        # data_name=args.data_dir
+                        data_name=args.data_dir if 'question_formation' in args.data_dir else None
                     )
                 else:
                     split = split.replace("tense_", "")
                     return eval_callback_tense_inflection(
                         model, in_vocab, split,
-                        # note: data_dir only specifies tense data!
-                        data_dir=args.data_dir
+                        data_dir=args.data_dir if 'tense_inflection' in args.data_dir else None
                     )
             callback_fn = {
                 'custom': callback_fn
