@@ -457,12 +457,16 @@ def main_lm(args):
             datasets["tense_linear"] = tense_data["linear"]
 
     elif args.dataset == "qf_and_tense":
+        # args.data_dir specifies data dir for EITHER tense or qf (read based on name)
+        qf_data_dir = args.data_dir if 'question_formation' in args.data_dir else None
+        tense_data_dir = args.data_dir if 'tense_inflection' in args.data_dir else None
+
         # get simple agreement data
         qf_data, _, _ = build_datasets_lm(
             include_only_quest=args.exclude_identity,
             include_only_decls_nd_simpl_ques=args.pretrain,
             include_only_complex_sents=args.train_on_compl_only,
-            # data_name=args.data_dir,
+            data_name=qf_data_dir,
             in_vocab=in_vocab,
             splits=['train', 'val', 'test', 'linear']
         )
@@ -474,16 +478,15 @@ def main_lm(args):
             include_only_present=args.exclude_identity,
             include_only_past_and_simple_present=args.pretrain,
             in_vocab=in_vocab,
-            # NEW: data dir only specifies tense data!
-            data_dir=args.data_dir,
+            data_dir=tense_data_dir,
             splits=tense_splits
         )
         # subsample from tense - the goal is to emphasize the qf task
-        if args.data_dir is None or 'past' not in args.data_dir:
+        if args.data_dir is None or ('past' not in args.data_dir and 'decl' not in args.data_dir): # execption for past & decl data
             assert len(tense_data['train']) == len(qf_data['train']), "Tense and QF train datasets must have the same length!"
 
-        if args.data_dir is not None and 'past' in args.data_dir:
-            # ignore size differences, just concatenate together
+        if args.data_dir is not None and ('past' in args.data_dir or 'decl' in args.data_dir):
+            # exception for past & decl data: ignore size differences, just concatenate together
             train = concatenate_datasets([qf_data['train'], tense_data['train']])
             val = concatenate_datasets([qf_data['val'], tense_data['val']])
         elif args.multitask_ratio is not None:
