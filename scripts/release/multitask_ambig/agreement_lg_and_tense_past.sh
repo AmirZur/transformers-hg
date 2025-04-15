@@ -1,0 +1,3 @@
+nlprun -a ellipse -g 1 -q jag -o logs/agreement_lg_and_tense_past_s0.log 'bash scripts/multitask_ambig/agreement_lg_and_tense_past.sh 0'
+nlprun -a ellipse -g 1 -q jag -o logs/agreement_lg_and_tense_past_s1.log 'bash scripts/multitask_ambig/agreement_lg_and_tense_past.sh 1'
+nlprun -a ellipse -g 1 -q jag -o logs/agreement_lg_and_tense_past_s2.log 'bash scripts/multitask_ambig/agreement_lg_and_tense_past.sh 2'
