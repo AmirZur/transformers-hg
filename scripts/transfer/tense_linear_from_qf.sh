@@ -12,7 +12,7 @@ python train_transformers.py \
     --seed 42 \
     --tied-embedding \
     --save_every 100000 \
-    --save_dir transfer_${from}_to_tense_linear \
+    --save_dir ${from}_to_tense_linear \
     --data_dir tense_inflection_linear_data \
     --model_load_path $from \
     --model_load_checkpoint $cp \
