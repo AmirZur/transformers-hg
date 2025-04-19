@@ -13,7 +13,7 @@ python activation_patching.py \
 
 # linear
 python activation_patching.py \
-    --model_name /nlp/scr/amirzur/$model \
+    --model_name $model \
     --model_checkpoint $checkpoint \
     --cf_dataset_name qf \
     --num_per_generation 5 \
