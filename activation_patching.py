@@ -155,10 +155,11 @@ def activation_patching(
 
         # reorganize source activations by [layer, head]
         for l in range(ENCODER_N_LAYERS):
-            layer_attn = einops.rearrange(
-                src_attns[l], 'b s (nh dh) -> b s nh dh',
-                nh=N_HEADS
-            )
+            # layer_attn = einops.rearrange(
+            #     src_attns[l], 'b s (nh dh) -> b s nh dh',
+            #     nh=N_HEADS
+            # )
+            layer_attn = src_attns[l].view((src_attns[l].shape[0], src_attns[l].shape[1], N_HEADS, -1))
             head_attns = []
             for h in range(N_HEADS):
                 head_attns.append(layer_attn[:, :, h, :])
@@ -179,15 +180,17 @@ def activation_patching(
                 with torch.no_grad():
                     with nnsight_model.trace(base_data, base_lens) as patched_run:
                         base_attn = nnsight_model.trafo.encoder.layers[l].self_attn.multi_head_merge.input
-                        base_attn = einops.rearrange(
-                            base_attn, 'b s (nh dh) -> b s nh dh',
-                            nh=N_HEADS
-                        )
+                        # base_attn = einops.rearrange(
+                        #     base_attn, 'b s (nh dh) -> b s nh dh',
+                        #     nh=N_HEADS
+                        # )
+                        base_attn = base_attn.view((base_attn.shape[0], base_attn.shape[1], N_HEADS, -1))
                         # patch head from source
                         base_attn[:, :, h, :] = src_attns[l][h]
-                        base_attn = einops.rearrange(
-                            base_attn, 'b s nh dh -> b s (nh dh)'
-                        )
+                        # base_attn = einops.rearrange(
+                        #     base_attn, 'b s nh dh -> b s (nh dh)'
+                        # )
+                        base_attn = base_attn.view((base_attn.shape[0], base_attn.shape[1], -1))
                         nnsight_model.trafo.encoder.layers[l].self_attn.multi_head_merge.input = base_attn
                         cf_res = nnsight_model.output.save()
                 
