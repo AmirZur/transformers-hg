@@ -150,13 +150,13 @@ def activation_patching(
                 src_out = nnsight_model.output.save()
 
         # positive (ceiling)
-        src_logit_diff = src_out.value.data[range(b), logit_ids, cf_labels] - src_out.value.data[range(b), logit_ids, base_labels] 
+        src_logit_diff = src_out.data[range(b), logit_ids, cf_labels] - src_out.data[range(b), logit_ids, base_labels] 
         all_src_logit_diffs.append(src_logit_diff.cpu())
 
         # reorganize source activations by [layer, head]
         for l in range(ENCODER_N_LAYERS):
             layer_attn = einops.rearrange(
-                src_attns[l].value, 'b s (nh dh) -> b s nh dh',
+                src_attns[l], 'b s (nh dh) -> b s nh dh',
                 nh=N_HEADS
             )
             head_attns = []
@@ -191,7 +191,7 @@ def activation_patching(
                         nnsight_model.trafo.encoder.layers[l].self_attn.multi_head_merge.input = base_attn
                         cf_res = nnsight_model.output.save()
                 
-                cf_logit_diff = cf_res.value.data[range(b), logit_ids, cf_labels] - cf_res.value.data[range(b), logit_ids, base_labels]
+                cf_logit_diff = cf_res.data[range(b), logit_ids, cf_labels] - cf_res.data[range(b), logit_ids, base_labels]
                 patch_layer_results.append(norm_diff(cf_logit_diff))
                 patch_layer_results_unnorm.append(cf_logit_diff - base_logit_diff)
             patching_results.append(torch.stack(patch_layer_results, dim=0))
