@@ -1,6 +1,7 @@
 import argparse
 import os
 from typing import List
+import pandas as pd
 from tqdm import tqdm
 import plotly.express as px
 import einops
@@ -273,10 +274,18 @@ def main(
         torch.save(all_base_logit_diffs, f'{save_dir}/{cf_dataset_name}_{cf_type}_base_logit_diffs.pt')
         torch.save(all_src_logit_diffs, f'{save_dir}/{cf_dataset_name}_{cf_type}_src_logit_diffs.pt')
 
+    # show results as images
     show_results(all_patching_results, f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results.png')
     show_results(all_patching_results_unnorm, f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results_unnorm.png')
+
+    # save results as csv
+    all_patching_results = all_patching_results.cpu().mean(dim=0).numpy()
+    all_patching_results_unnorm = all_patching_results_unnorm.cpu().mean(dim=0).numpy()
+    all_patching_results = pd.DataFrame(all_patching_results)
+    all_patching_results_unnorm = pd.DataFrame(all_patching_results_unnorm)
+    all_patching_results.to_csv(f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results.csv', index=False)
+    all_patching_results_unnorm.to_csv(f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results_unnorm.csv', index=False)
     
-    return all_patching_results, all_base_logit_diffs, all_src_logit_diffs
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
