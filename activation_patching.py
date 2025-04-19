@@ -140,13 +140,14 @@ def activation_patching(
 
         # collect activations for each layer in source example
         src_attns = []
+        nnsight_model = NNsight(lm)
         with torch.no_grad():
-            with NNsight(lm).trace(source_data, source_lens) as source_run:
+            with nnsight_model.trace(source_data, source_lens) as source_run:
                 for l in range(ENCODER_N_LAYERS):
-                    src_attn = source_run.trafo.encoder.layers[l].self_attn.multi_head_merge.input.save()
+                    src_attn = nnsight_model.trafo.encoder.layers[l].self_attn.multi_head_merge.input.save()
                     src_attns.append(src_attn)
                 # collect source logits
-                src_out = source_run.output.save()
+                src_out = nnsight_model.output.save()
 
         # positive (ceiling)
         src_logit_diff = src_out.value.data[range(b), logit_ids, cf_labels] - src_out.value.data[range(b), logit_ids, base_labels] 
@@ -176,8 +177,8 @@ def activation_patching(
             patch_layer_results_unnorm = []
             for h in range(N_HEADS):
                 with torch.no_grad():
-                    with NNsight(lm).trace(base_data, base_lens) as patched_run:
-                        base_attn = patched_run.trafo.encoder.layers[l].self_attn.multi_head_merge.input
+                    with nnsight_model.trace(base_data, base_lens) as patched_run:
+                        base_attn = nnsight_model.trafo.encoder.layers[l].self_attn.multi_head_merge.input
                         base_attn = einops.rearrange(
                             base_attn, 'b s (nh dh) -> b s nh dh',
                             nh=N_HEADS
@@ -187,8 +188,8 @@ def activation_patching(
                         base_attn = einops.rearrange(
                             base_attn, 'b s nh dh -> b s (nh dh)'
                         )
-                        patched_run.trafo.encoder.layers[l].self_attn.multi_head_merge.input = base_attn
-                        cf_res = patched_run.output.save()
+                        nnsight_model.trafo.encoder.layers[l].self_attn.multi_head_merge.input = base_attn
+                        cf_res = nnsight_model.output.save()
                 
                 cf_logit_diff = cf_res.value.data[range(b), logit_ids, cf_labels] - cf_res.value.data[range(b), logit_ids, base_labels]
                 patch_layer_results.append(norm_diff(cf_logit_diff))
@@ -285,7 +286,7 @@ def main(
     all_patching_results_unnorm = pd.DataFrame(all_patching_results_unnorm)
     all_patching_results.to_csv(f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results.csv', index=False)
     all_patching_results_unnorm.to_csv(f'{save_dir}/{cf_dataset_name}_{cf_type}_patching_results_unnorm.csv', index=False)
-    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
