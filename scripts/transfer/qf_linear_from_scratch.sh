@@ -1,0 +1,14 @@
+python train_transformers.py \
+    --encoder_n_layers 6 \
+    --callback \
+    --dataset lm \
+    --max_train_steps 100000 \
+    --max_grad_norm 1 \
+    --eval_every 1000 \
+    --seed 42 \
+    --tied-embedding \
+    --save_every 100000 \
+    --save_dir /nlp/scr/amirzur/scratch_to_qf_linear \
+    --data_dir question_formation_linear_data \
+    --wandb_dir /nlp/scr/amirzur \
+    --shared_vocab all

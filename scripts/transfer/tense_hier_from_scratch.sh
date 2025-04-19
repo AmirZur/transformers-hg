@@ -1,0 +1,13 @@
+python train_transformers.py \
+    --encoder_n_layers 6 \
+    --callback \
+    --dataset tense \
+    --max_train_steps 100000 \
+    --eval_every 1000 \
+    --seed 42 \
+    --tied-embedding \
+    --save_every 100000 \
+    --save_dir /nlp/scr/amirzur/scratch_to_tense_hier \
+    --data_dir tense_inflection_hier_data \
+    --wandb_dir /nlp/scr/amirzur \
+    --shared_vocab tense
