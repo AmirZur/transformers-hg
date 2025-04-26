@@ -97,7 +97,8 @@ def activation_patching(
         'base_len': list(zip(*base_preprocessed))[1],
         'source': list(zip(*source_preprocessed))[0],
         'source_len': list(zip(*source_preprocessed))[1],
-        'matrix_verb_index': [example['matrix_verb_index'] for example in cf_dataset],
+        'base_matrix_verb_index': [example['base_matrix_verb_index'] for example in cf_dataset],
+        'source_matrix_verb_index': [example['source_matrix_verb_index'] for example in cf_dataset],
         'cf_label': [in_vocab(example['cf_label']) for example in cf_dataset],
         'base_label': [in_vocab(example['base_label']) for example in cf_dataset],
     }
@@ -128,14 +129,15 @@ def activation_patching(
         source_lens = batch['source_len'].squeeze(0).to(device)
         cf_labels = batch['cf_label'].squeeze(0).long().to(device)
         base_labels = batch['base_label'].squeeze(0).long().to(device)
-        logit_ids = batch['matrix_verb_index'].squeeze(0).long().to(device)
+        base_logit_ids = batch['base_matrix_verb_index'].squeeze(0).long().to(device)
+        source_logit_ids = batch['source_matrix_verb_index'].squeeze(0).long().to(device)
         b = base_data.shape[0]
 
         # collect base logits
         with torch.no_grad():
             base_out = lm(base_data, base_lens)
         # negative (floor)
-        base_logit_diff = base_out.data[range(b), logit_ids, cf_labels] - base_out.data[range(b), logit_ids, base_labels] 
+        base_logit_diff = base_out.data[range(b), base_logit_ids, cf_labels] - base_out.data[range(b), base_logit_ids, base_labels] 
         all_base_logit_diffs.append(base_logit_diff.cpu())
 
         # collect activations for each layer in source example
@@ -150,7 +152,7 @@ def activation_patching(
                 src_out = nnsight_model.output.save()
 
         # positive (ceiling)
-        src_logit_diff = src_out.data[range(b), logit_ids, cf_labels] - src_out.data[range(b), logit_ids, base_labels] 
+        src_logit_diff = src_out.data[range(b), source_logit_ids, cf_labels] - src_out.data[range(b), source_logit_ids, base_labels] 
         all_src_logit_diffs.append(src_logit_diff.cpu())
 
         # reorganize source activations by [layer, head]
@@ -194,7 +196,8 @@ def activation_patching(
                         nnsight_model.trafo.encoder.layers[l].self_attn.multi_head_merge.input = base_attn
                         cf_res = nnsight_model.output.save()
                 
-                cf_logit_diff = cf_res.data[range(b), logit_ids, cf_labels] - cf_res.data[range(b), logit_ids, base_labels]
+                # read value off of base logit indices (does this make sense?)
+                cf_logit_diff = cf_res.data[range(b), base_logit_ids, cf_labels] - cf_res.data[range(b), base_logit_ids, base_labels]
                 patch_layer_results.append(norm_diff(cf_logit_diff))
                 patch_layer_results_unnorm.append(cf_logit_diff - base_logit_diff)
             patching_results.append(torch.stack(patch_layer_results, dim=0))
@@ -227,6 +230,7 @@ def main(
     cf_dataset_name : str,
     num_per_generation : int = 2,
     hier : bool = False,
+    relative_clause : bool = False, # whether to intervene on relative clause or number of verb/auxiliary
     g_name : str = 'agreement_hr_v4', # only use if cf_dataset = agreement
     batch_size : int = 32,
     device : str = 'cuda',
@@ -257,9 +261,9 @@ def main(
     if cf_dataset_name == 'agreement':
         cf_dataset = agreement_cf(hier=hier, g_name=g_name, num_per_generation=num_per_generation, seed=seed)
     elif cf_dataset_name == 'tense':
-        cf_dataset = tense_cf(hier=hier, num_per_generation=num_per_generation, seed=seed)
+        cf_dataset = tense_cf(hier=hier, rel=relative_clause, num_per_generation=num_per_generation, seed=seed)
     elif cf_dataset_name == 'qf':
-        cf_dataset = qf_cf(hier=hier, num_per_generation=num_per_generation, seed=seed)
+        cf_dataset = qf_cf(hier=hier, rel=relative_clause, num_per_generation=num_per_generation, seed=seed)
     else:
         raise ValueError(f'Unknown cf_dataset_name: {cf_dataset_name}')
     
@@ -298,6 +302,7 @@ if __name__ == '__main__':
     parser.add_argument('--cf_dataset_name', type=str, required=True)
     parser.add_argument('--num_per_generation', type=int, default=2)
     parser.add_argument('--hier', action='store_true')
+    parser.add_argument('--relative_clause', action='store_true')
     parser.add_argument('--g_name', type=str, default='agreement_hr_v4')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--device', type=str, default='cuda')
@@ -305,15 +310,4 @@ if __name__ == '__main__':
     parser.add_argument('--save_tensors', action='store_true')
     args = parser.parse_args()
 
-    main(
-        args.model_name,
-        args.model_checkpoint,
-        args.cf_dataset_name,
-        args.num_per_generation,
-        args.hier,
-        args.g_name,
-        args.batch_size,
-        args.device,
-        args.seed,
-        args.save_tensors
-    )
+    main(**vars(args))

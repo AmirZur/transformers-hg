@@ -1,0 +1,64 @@
+1	ROOT	S .
+
+1	S	NP_M_S VP_M_S
+1	S	NP_M_P VP_M_P
+# do negation separately
+1	S	NP_M_S_Neg VP_M_S_Neg
+1	S	NP_M_P_Neg VP_M_P_Neg
+
+# want 2 auxiliaries (2 RC clauses) before main verb
+# 1	NP_M_S	Det N_S
+# 1	NP_M_S	Det N_S Prep Det N
+1	NP_M_S	Det N_S RC_S
+
+# 1	NP_M_P	Det N_P
+# 1	NP_M_P	Det N_P Prep Det N
+1	NP_M_P	Det N_P RC_P
+
+1	NP_M_S_Neg	Det N_S RC_S_Neg
+1	NP_M_P_Neg	Det N_P RC_P_Neg
+
+# don't care about number of auxiliaries after main verb
+1	NP_O	Det N_S
+1	NP_O	Det N_P
+1	NP_O	Det N_S Prep Det N
+1	NP_O	Det N_P Prep Det N
+# can keep these, but we'd need to make sure the RCs end for Ns just for NP_O, and that's annoying
+# 1	NP_O	Det N_S RC_S
+# 1	NP_O	Det N_P RC_P
+# 1	NP_O	Det N_S RC_S_Neg
+# 1	NP_O	Det N_P RC_P_Neg
+
+1	N	N_S
+1	N	N_P
+
+# 1	VP_M_S	Aux_S V_intrans
+1	VP_M_S	Aux_S V_trans NP_O
+
+# 1	VP_M_S_Neg	Aux_S_Neg V_intrans
+1	VP_M_S_Neg	Aux_S_Neg V_trans NP_O
+
+# 1	VP_M_P	Aux_P V_intrans
+1	VP_M_P	Aux_P V_trans NP_O
+
+# 1	VP_M_P_Neg	Aux_P_Neg V_intrans
+1	VP_M_P_Neg	Aux_P_Neg V_trans NP_O
+
+# match in number to keep ambiguous
+2	RC_S	Rel Aux_S V_intrans
+1	RC_S	Rel Det N_S Aux_S V_trans
+# 1	RC_S	Rel Det N_P Aux_P V_trans
+2	RC_S	Rel Aux_S V_trans Det N
+# repeat with negation
+2	RC_S_Neg	Rel Aux_S_Neg V_intrans
+1	RC_S_Neg	Rel Det N_S Aux_S_Neg V_trans
+2	RC_S_Neg	Rel Aux_S_Neg V_trans Det N
+
+2	RC_P	Rel Aux_P V_intrans
+# 1	RC_P	Rel Det N_S Aux_S V_trans
+1	RC_P	Rel Det N_P Aux_P V_trans
+2	RC_P	Rel Aux_P V_trans Det N
+# repeat with negation
+2	RC_P_Neg	Rel Aux_P_Neg V_intrans
+1	RC_P_Neg	Rel Det N_P Aux_P_Neg V_trans
+2	RC_P_Neg	Rel Aux_P_Neg V_trans Det N

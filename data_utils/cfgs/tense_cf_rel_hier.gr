@@ -1,0 +1,52 @@
+1	ROOT	S .
+
+1	S	NP_M_sg VP_M_sg
+1	S	NP_M_pl VP_M_pl
+
+# must have a rel clause with same plurality
+# 1	NP_M_sg	Det N_sg
+# 0.5	NP_M_sg	Det N_sg Prep Det N_sg
+# CF: Det N_pl Prep Det N_sg
+# 0.5	NP_M_sg	Det N_sg Prep Det N_pl
+1	NP_M_sg	Det N_sg RC_sg
+# CF: Det N_pl RC_sg
+
+# 1	NP_M_pl	Det N_pl
+# 0.5	NP_M_pl	Det N_pl Prep Det N_sg
+# 0.5	NP_M_pl	Det N_pl Prep Det N_pl
+# CF: Det N_sg Prep Det N_pl
+1	NP_M_pl	Det N_pl RC_pl
+# CF: Det N_sg RC_pl
+
+1	NP_O_sg	Det N_sg
+0.5	NP_O_sg	Det N_sg Prep Det N_sg
+0.5	NP_O_sg	Det N_sg Prep Det N_pl
+1	NP_O_sg	Det N_sg RC_sg
+
+1	NP_O_pl	Det N_pl
+0.5	NP_O_pl	Det N_pl Prep Det N_sg
+0.5	NP_O_pl	Det N_pl Prep Det N_pl
+1	NP_O_pl	Det N_pl RC_pl
+
+# must end on NP_O
+# 1	VP_M_sg	V_intrans_sg
+0.5	VP_M_sg	V_trans_sg NP_O_sg
+0.5	VP_M_sg	V_trans_sg NP_O_pl
+
+# 1	VP_M_pl	V_intrans_pl
+0.5	VP_M_pl	V_trans_pl NP_O_sg
+0.5	VP_M_pl	V_trans_pl NP_O_pl
+
+# must end on N_sg
+# 1	RC_sg	Rel V_intrans_sg
+# 0.5	RC_sg	Rel Det N_sg V_trans_sg
+# 0.5	RC_sg	Rel Det N_pl V_trans_pl
+0.5	RC_sg	Rel V_trans_sg Det N_sg
+# 0.5	RC_sg	Rel V_trans_sg Det N_pl
+
+# must end on N_pl
+# 1	RC_pl	Rel V_intrans_pl
+# 0.5	RC_pl	Rel Det N_sg V_trans_sg
+# 0.5	RC_pl	Rel Det N_pl V_trans_pl
+# 0.5	RC_pl	Rel V_trans_pl Det N_sg
+0.5	RC_pl	Rel V_trans_pl Det N_pl

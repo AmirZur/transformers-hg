@@ -9,7 +9,8 @@ python activation_patching.py \
     --num_per_generation 10 \
     --batch_size 64 \
     --seed 42 \
-    --hier
+    --hier \
+    --relative_clause
 
 # linear
 python activation_patching.py \
@@ -18,4 +19,5 @@ python activation_patching.py \
     --cf_dataset_name tense \
     --num_per_generation 10 \
     --batch_size 64 \
-    --seed 42
+    --seed 42 \
+    --relative_clause

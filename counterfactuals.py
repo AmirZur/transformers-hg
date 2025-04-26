@@ -15,19 +15,30 @@ def index(lst, item, default=-1):
         return lst.index(item)
     except ValueError:
         return default
-    
+
+def flatten(l):
+    for el in l:
+        if isinstance(el, tuple):
+            yield from flatten(el)
+        else:
+            yield el
+
+def get_rel_clause_indices(parse):
+    if parse[-1] == '.':
+        parse = parse[0]
+    np = parse[0][0]
+    rel = parse[0][1]
+
+    rel_start = len(list(flatten(np)))
+    rel_end = rel_start + len(list(flatten(rel)))
+    return rel_start, rel_end
+
 def get_matrix_verb_index_tense(parse):
     if parse[-1] == '.':
         parse = parse[0]
 
     # get main verb: 1st child of 2nd child of root
     before_verb = parse[0]
-    def flatten(l):
-        for el in l:
-            if isinstance(el, tuple):
-                yield from flatten(el)
-            else:
-                yield el
     before_verb = list(flatten(before_verb))
     return len(before_verb)
 
@@ -107,7 +118,8 @@ def sample_cf_subject_tense(
         'base': base_sentence,
         'source': cf_sentence,
         'noun_index': subject_noun_idx,
-        'matrix_verb_index': matrix_verb_idx,
+        'base_matrix_verb_index': matrix_verb_idx,
+        'source_matrix_verb_index': matrix_verb_idx,
         'cf_label': cf_sentence[matrix_verb_idx],
         'base_label': base_sentence[matrix_verb_idx]
     }
@@ -170,9 +182,172 @@ def sample_cf_recent_tense(
         'base': base_sentence,
         'source': cf_sentence,
         'noun_index': recent_noun_idx,
-        'matrix_verb_index': matrix_verb_idx,
+        'base_matrix_verb_index': matrix_verb_idx,
+        'source_matrix_verb_index': matrix_verb_idx,
         'cf_label': cf_sentence[matrix_verb_idx],
         'base_label': base_sentence[matrix_verb_idx]
+    }
+
+def sample_cf_rel_linear_tense(
+    sentence : List[str],
+    pos_to_token : dict,
+    sg_to_pl : dict
+):
+    """
+    Create counterfactual pair where only the recent noun 
+    (right-most noun to left of matrix verb) changes (sg -> pl, pl -> sg)
+
+    This dataset is used to test linear grammar understanding in the model
+    """
+    pos = [w[0] if w != '.' else 'T' for w in sentence]
+    parse = convert_to_parse(" ".join(sentence), pos_to_parse_tense(pos), do_postprocess=False)
+
+    # fill in sentence with randomly chosen tokens for each POS
+    base_sentence = []
+    for p in sentence:
+        if p in pos_to_token:
+            base_sentence.append(np.random.choice(pos_to_token[p]))
+        else:
+            base_sentence.append(p)
+    
+    # get index of matrix verb and its most recent noun (closest to it from the right)
+    matrix_verb_idx = get_matrix_verb_index_tense(parse)
+    assert 0 <= matrix_verb_idx < len(sentence), "Can't find the matrix verb"
+    # get index of subject noun & matrix verb (only edits made)
+    subject_noun_idx = min(
+        index(sentence, 'N_sg', default=len(sentence)),
+        index(sentence, 'N_pl', default=len(sentence))
+    )
+    assert 0 <= subject_noun_idx < len(sentence), "Can't find the most recent noun"
+
+    # break ambiguity by changing subject from sg -> pl/ pl -> sg
+    base_sentence[subject_noun_idx] = sg_to_pl[base_sentence[subject_noun_idx]]
+    ref_sentence = sentence.copy() # update reference sentence as well
+    ref_sentence[subject_noun_idx] = sentence[subject_noun_idx][:-2] + ('sg' if sentence[subject_noun_idx].endswith('pl') else 'pl')
+
+    # create counterfactual by moving rel clause to the end of the sentence
+    rel_start, rel_end = get_rel_clause_indices(parse)
+    cf_sentence = base_sentence[:rel_start] + base_sentence[rel_end:-1] + base_sentence[rel_start:rel_end] + [base_sentence[-1]] # make sure to keep "." at the end
+    cf_ref_sentence = ref_sentence[:rel_start] + ref_sentence[rel_end:-1] + ref_sentence[rel_start:rel_end] + [ref_sentence[-1]] # update reference sentence as well
+
+    # make sure everything follows the linear rule
+    for w in range(len(base_sentence)):
+        # for each verb, find the nearest noun to its left
+        if ref_sentence[w].startswith('V'):
+            for n in range(w - 1, -1, -1):
+                if ref_sentence[n].startswith('N'):
+                    # if verb and noun don't match in number, change verb
+                    if ref_sentence[w].split('_')[-1] != ref_sentence[n].split('_')[-1]:
+                        base_sentence[w] = sg_to_pl[base_sentence[w]]
+                    break
+
+    # repeat for cf sentence
+    for w in range(len(cf_sentence)):
+        # for each verb, find the nearest noun to its left
+        if cf_ref_sentence[w].startswith('V'):
+            for n in range(w - 1, -1, -1):
+                if cf_ref_sentence[n].startswith('N'):
+                    # if verb and noun don't match in number, change verb
+                    if cf_ref_sentence[w].split('_')[-1] != cf_ref_sentence[n].split('_')[-1]:
+                        cf_sentence[w] = sg_to_pl[cf_sentence[w]]
+                    break
+
+    return {
+        'base': base_sentence,
+        'source': cf_sentence,
+        'base_matrix_verb_index': matrix_verb_idx,
+        'source_matrix_verb_index': rel_start,
+        'cf_label': cf_sentence[rel_start],
+        'base_label': base_sentence[matrix_verb_idx]
+    }
+
+def sample_cf_rel_hier_tense(
+    sentence : List[str],
+    pos_to_token : dict,
+    sg_to_pl : dict
+):
+    """
+    Create counterfactual pair where only the recent noun 
+    (right-most noun to left of matrix verb) changes (sg -> pl, pl -> sg)
+
+    This dataset is used to test linear grammar understanding in the model
+    """
+    pos = [w[0] if w != '.' else 'T' for w in sentence]
+    parse = convert_to_parse(" ".join(sentence), pos_to_parse_tense(pos), do_postprocess=False)
+
+    # fill in sentence with randomly chosen tokens for each POS
+    base_sentence = []
+    for p in sentence:
+        if p in pos_to_token:
+            base_sentence.append(np.random.choice(pos_to_token[p]))
+        else:
+            base_sentence.append(p)
+    
+    # get index of matrix verb and its most recent noun (closest to it from the right)
+    matrix_verb_idx = get_matrix_verb_index_tense(parse)
+    assert 0 <= matrix_verb_idx < len(sentence), "Can't find the matrix verb"
+    # get index of subject noun & matrix verb (only edits made)
+    subject_noun_idx = min(
+        index(sentence, 'N_sg', default=len(sentence)),
+        index(sentence, 'N_pl', default=len(sentence))
+    )
+    assert 0 <= subject_noun_idx < len(sentence), "Can't find the most recent noun"
+
+    # break ambiguity by changing subject from sg -> pl/ pl -> sg
+    base_sentence[subject_noun_idx] = sg_to_pl[base_sentence[subject_noun_idx]]
+    ref_sentence = sentence.copy() # update reference sentence as well
+    ref_sentence[subject_noun_idx] = sentence[subject_noun_idx][:-2] + ('sg' if sentence[subject_noun_idx].endswith('pl') else 'pl')
+
+    # create counterfactual by moving rel clause to the end of the sentence
+    rel_start, rel_end = get_rel_clause_indices(parse)
+    cf_sentence = base_sentence[:rel_start] + base_sentence[rel_start + 1:rel_end] + [base_sentence[rel_start]] + base_sentence[rel_end:] # make sure to keep "." at the end
+    cf_ref_sentence = ref_sentence[:rel_start] + ref_sentence[rel_start + 1:rel_end] + [ref_sentence[rel_start]] + ref_sentence[rel_end:] # update reference sentence as well
+
+    base_matrix_verb_index = matrix_verb_idx
+    source_matrix_verb_index = rel_start # main verb is where relative clause used to start
+
+    # update matrix verbs in both sentences
+    base_sentence[base_matrix_verb_index] = sg_to_pl[base_sentence[base_matrix_verb_index]]
+    cf_sentence[source_matrix_verb_index] = sg_to_pl[cf_sentence[source_matrix_verb_index]]
+
+    # make sure everything EXCEPT MATRIX VERB follows the linear rule
+    for w in range(len(base_sentence)):
+        if w == base_matrix_verb_index:
+            # linear rule doesn't apply to matrix verb
+            continue
+        # for each verb, find the nearest noun to its left
+        if ref_sentence[w].startswith('V'):
+            for n in range(w - 1, -1, -1):
+                if ref_sentence[n].startswith('N'):
+                    # if verb and noun don't match in number, change verb
+                    if ref_sentence[w].split('_')[-1] != ref_sentence[n].split('_')[-1]:
+                        base_sentence[w] = sg_to_pl[base_sentence[w]]
+                    break
+
+    # repeat for cf sentence
+    for w in range(len(cf_sentence)):
+        if w == source_matrix_verb_index:
+            # linear rule doesn't apply to matrix verb
+            continue
+        # for each verb, find the nearest noun to its left
+        if cf_ref_sentence[w].startswith('V'):
+            for n in range(w - 1, -1, -1):
+                if cf_ref_sentence[n].startswith('N'):
+                    # if verb and noun don't match in number, change verb
+                    if cf_ref_sentence[w].split('_')[-1] != cf_ref_sentence[n].split('_')[-1]:
+                        cf_sentence[w] = sg_to_pl[cf_sentence[w]]
+                    break
+    
+    # use base matrix verb index for labels 
+    # because matrix verb is different across sentences and it's hard to compare
+    # but we can compare the number on the verb that's the matrix verb in the base sentence (and not in the cf sentence)
+    return {
+        'base': base_sentence,
+        'source': cf_sentence,
+        'base_matrix_verb_index': base_matrix_verb_index,
+        'source_matrix_verb_index': base_matrix_verb_index,
+        'cf_label': cf_sentence[base_matrix_verb_index],
+        'base_label': base_sentence[base_matrix_verb_index]
     }
 
 def preprocess_example_tense(
@@ -194,27 +369,42 @@ def preprocess_example_tense(
     base_past, source_past = to_past(base), to_past(source)
 
     # sentence is repeated, so get both indices (shifted by sentence + 'PRESENT')
-    noun_idxs = [example['noun_index'], example['noun_index'] + len(base) + 1]
-    matrix_verb_index = example['matrix_verb_index'] + len(base) + 1
+    # noun_idxs = [example['noun_index'], example['noun_index'] + len(base) + 1]
+    base_matrix_verb_index = example['base_matrix_verb_index'] + len(base) + 1
+    source_matrix_verb_index = example['source_matrix_verb_index'] + len(source) + 1
     last_token_index = len(base_past) + 1 # indexes PRESENT
 
     base = " ".join(base_past + ['PRESENT'] + base)
     source = " ".join(source_past + ['PRESENT'] + source)
 
-    return {
+    # two for one deal: can swap base & source to test inverse value of intervened variable
+    base_to_source = {
         'base': base,
         'source': source,
-        'noun_indices': noun_idxs,
-        'matrix_verb_index': matrix_verb_index,
+        'base_matrix_verb_index': base_matrix_verb_index,
+        'source_matrix_verb_index': source_matrix_verb_index,
         'cf_label': example['cf_label'],
         'base_label': example['base_label'],
         'last_token_index': last_token_index
     }
 
+    source_to_base = {
+        'base': source,
+        'source': base,
+        'base_matrix_verb_index': source_matrix_verb_index,
+        'source_matrix_verb_index': base_matrix_verb_index,
+        'cf_label': example['base_label'],
+        'base_label': example['cf_label'],
+        'last_token_index': last_token_index
+    }
+
+    return [base_to_source, source_to_base]
+
 def tense_cf(
     num_per_generation : int = 2,
     hier : bool = False,
     seed : int = 0,
+    rel : bool = False, # whether to intervene on relative clause or not
     verbose : bool = True
 ):
     # set random seed
@@ -222,7 +412,13 @@ def tense_cf(
     np.random.seed(seed)
 
     tense_gr = defaultdict(list)
-    with open('data_utils/cfgs/tense_cf_subject.gr') as f:
+    if rel and hier:
+        gr_path = 'data_utils/cfgs/tense_cf_rel_hier.gr'
+    elif rel: # linear
+        gr_path = 'data_utils/cfgs/tense_cf_rel_linear.gr'
+    else:
+        gr_path = 'data_utils/cfgs/tense_cf.gr'
+    with open(gr_path) as f:
         for line in f:
             # skip empty lines and comments
             if line.strip() != '' and not line.strip().startswith('#'):
@@ -266,12 +462,16 @@ def tense_cf(
     cf_dataset = []
     for template in templates:
         for _ in range(num_per_generation):
-            if hier:
+            if rel and hier:
+                sampled_cf = sample_cf_rel_hier_tense(template, pos_to_token, sg_to_pl)
+            elif rel: # linear
+                sampled_cf = sample_cf_rel_linear_tense(template, pos_to_token, sg_to_pl)
+            elif hier:
                 sampled_cf = sample_cf_subject_tense(template, pos_to_token, sg_to_pl)
             else:
                 sampled_cf = sample_cf_recent_tense(template, pos_to_token, sg_to_pl)
             example = preprocess_example_tense(sampled_cf, present_to_past)
-            cf_dataset.append(example)
+            cf_dataset.extend(example) # two for one deal
         
     print(f'Generated {len(cf_dataset)} examples')
 
@@ -279,11 +479,9 @@ def tense_cf(
         example = cf_dataset[0]
         print('Example (index 0):')
         print('Base:', example['base'])
-        print('Base subject:', example['base'].split()[example['noun_indices'][0]], example['base'].split()[example['noun_indices'][1]])
-        print('Base verb:', example['base'].split()[example['matrix_verb_index']])
+        print('Base verb:', example['base'].split()[example['base_matrix_verb_index']])
         print('Source:', example['source'])
-        print('Source subject:', example['source'].split()[example['noun_indices'][0]], example['source'].split()[example['noun_indices'][1]])
-        print('Source verb:', example['source'].split()[example['matrix_verb_index']])
+        print('Source verb:', example['source'].split()[example['source_matrix_verb_index']])
 
     return cf_dataset
 
@@ -571,7 +769,8 @@ def sample_cf_main_qf(
     return {
         'base': base_sentence,
         'source': cf_sentence,
-        'aux_idx': main_aux_idx,
+        'base_aux_idx': main_aux_idx,
+        'source_aux_idx': main_aux_idx
     }
 
 def sample_cf_first_qf(
@@ -611,7 +810,97 @@ def sample_cf_first_qf(
     return {
         'base': base_sentence,
         'source': cf_sentence,
-        'aux_idx': first_aux_idx,
+        'base_aux_idx': first_aux_idx,
+        'source_aux_idx': first_aux_idx
+    }
+
+def sample_cf_rel_hier_qf(
+    sentence : List[str],
+    pos_to_token : dict,
+    pos_to_neg : dict
+):
+    """
+    Create counterfactual pair where the relative word moves to the end of the relative clause
+    (the zebra THAT doesn't like the yak does eat -> the zebra doesn't like the yak THAT does eat)
+
+    This dataset is used to test hierarchical grammar understanding in the model
+    """
+    pos = [w[0] if w != '.' else 'T' for w in sentence]
+    parse = convert_to_parse(" ".join(sentence), pos_to_parse(pos), do_postprocess=False)
+
+    # fill in sentence with randomly chosen tokens for each POS
+    base_sentence = []
+    for p in sentence:
+        if p in pos_to_token:
+            base_sentence.append(np.random.choice(pos_to_token[p]))
+        else:
+            base_sentence.append(p)
+    
+    # get index of subject noun & matrix verb (only edits made)
+    matrix_verb_idx = get_matrix_verb_index_qf(parse)
+    assert 0 <= matrix_verb_idx < len(sentence), "Can't find the matrix verb"
+    main_aux_idx = matrix_verb_idx - 1
+    
+    # break ambiguity by making subject & matrix verb sg -> pl/ pl -> sg
+    base_sentence[main_aux_idx] = pos_to_neg[base_sentence[main_aux_idx]]
+
+    # move rel to the end of the rel phrase
+    # e.g. the newt WHO does like your cat doesn't swim -> the newt does like your cat WHO doesn't swim
+    rel_start, rel_end = get_rel_clause_indices(parse)
+    cf_sentence = base_sentence.copy()
+    cf_sentence = cf_sentence[:rel_start] + cf_sentence[rel_start + 1:rel_end] + [cf_sentence[rel_start]] + cf_sentence[rel_end:]
+
+    return {
+        'base': base_sentence,
+        'source': cf_sentence,
+        'base_aux_idx': main_aux_idx, # index of aux on base stays the same
+        'source_aux_idx': rel_start, # index of aux on source changes to aux in rel clause
+    }
+
+def sample_cf_rel_linear_qf(
+    sentence : List[str],
+    pos_to_token : dict,
+    pos_to_neg : dict
+):
+    """
+    Create counterfactual pair where the entire relative clause moves to the end of the sentence
+    (e.g., the zebra [that does eat] doesn't like the yack -> the zebra doesn't like the yak [that does eat])
+
+    This dataset is used to test hierarchical grammar understanding in the model
+    """
+    pos = [w[0] if w != '.' else 'T' for w in sentence]
+    parse = convert_to_parse(" ".join(sentence), pos_to_parse(pos), do_postprocess=False)
+
+    # fill in sentence with randomly chosen tokens for each POS
+    base_sentence = []
+    for p in sentence:
+        if p in pos_to_token:
+            base_sentence.append(np.random.choice(pos_to_token[p]))
+        else:
+            base_sentence.append(p)
+    
+    # get index of subject noun & matrix verb (only edits made)
+    first_aux_idx = min(
+        index(sentence, 'Aux_S', default=len(sentence)),
+        index(sentence, 'Aux_P', default=len(sentence)),
+        index(sentence, 'Aux_S_Neg', default=len(sentence)),
+        index(sentence, 'Aux_P_Neg', default=len(sentence)),
+    )
+    assert 0 <= first_aux_idx < len(sentence), "Can't find the first auxiliary"
+
+    # break ambiguity by changing first aux sg -> pl/ pl -> sg
+    base_sentence[first_aux_idx] = pos_to_neg[base_sentence[first_aux_idx]]
+
+    # move entire rel clause to the end of the sentence
+    # e.g. the zebra [that does eat] doesn't like the yack . -> the zebra doesn't like the yak [that does eat] .
+    rel_start, rel_end = get_rel_clause_indices(parse)
+    cf_sentence = base_sentence[:rel_start] + base_sentence[rel_end:-1] + base_sentence[rel_start:rel_end] + [base_sentence[-1]] # make sure to keep "." at the end
+
+    return {
+        'base': base_sentence,
+        'source': cf_sentence,
+        'base_aux_idx': first_aux_idx, # index of aux on base stays the same
+        'source_aux_idx': rel_start, # main aux is what gets left behind after rel clause moves
     }
 
 def preprocess_example_qf(
@@ -635,22 +924,37 @@ def preprocess_example_qf(
     cf_logit_index = len(base) + 1
     last_token_index = len(base) + 1 # indexes quest (left-shifted from logits!)
 
-    base = base + ['quest'] + to_question(base, example['aux_idx'])
-    source = source + ['quest'] + to_question(source, example['aux_idx'])
+    base = base + ['quest'] + to_question(base, example['base_aux_idx'])
+    source = source + ['quest'] + to_question(source, example['source_aux_idx'])
 
-    return {
+    # two for one deal: can swap base & source to test inverse value of intervened variable
+    source_to_base = {
         'base': " ".join(base),
         'source': " ".join(source),
-        'matrix_verb_index': cf_logit_index,
+        'base_matrix_verb_index': cf_logit_index,
+        'source_matrix_verb_index': cf_logit_index,
         'cf_label': source[cf_logit_index],
         'base_label': base[cf_logit_index],
         'last_token_index': last_token_index
     }
 
+    base_to_source = {
+        'base': " ".join(source),
+        'source': " ".join(base),
+        'base_matrix_verb_index': cf_logit_index,
+        'source_matrix_verb_index': cf_logit_index,
+        'cf_label': base[cf_logit_index],
+        'base_label': source[cf_logit_index],
+        'last_token_index': last_token_index
+    }
+
+    return [source_to_base, base_to_source]
+
 def qf_cf(
     num_per_generation : int = 2,
     hier : bool = False,
     seed : int = 0,
+    rel : bool = False, # whether to intervene on relative clause or not
     verbose : bool = True
 ):
     # set random seed
@@ -658,7 +962,13 @@ def qf_cf(
     np.random.seed(seed)
 
     qf_gr = defaultdict(list)
-    with open('data_utils/cfgs/qf_cf.gr') as f:
+    if rel and hier:
+        gr_path = 'data_utils/cfgs/qf_cf_rel_hier.gr'
+    elif rel: # linear
+        gr_path = 'data_utils/cfgs/qf_cf_rel_linear.gr'
+    else:
+        gr_path = 'data_utils/cfgs/qf_cf.gr'
+    with open(gr_path) as f:
         for line in f:
             # skip empty lines and comments
             if line.strip() != '' and not line.strip().startswith('#'):
@@ -692,12 +1002,16 @@ def qf_cf(
     cf_dataset = []
     for template in templates:
         for _ in range(num_per_generation):
-            if hier:
+            if rel and hier:
+                sampled_cf = sample_cf_rel_hier_qf(template, pos_to_token, pos_to_neg)
+            elif rel: # linear
+                sampled_cf = sample_cf_rel_linear_qf(template, pos_to_token, pos_to_neg)
+            elif hier:
                 sampled_cf = sample_cf_main_qf(template, pos_to_token, pos_to_neg)
             else:
                 sampled_cf = sample_cf_first_qf(template, pos_to_token, pos_to_neg)
-            example = preprocess_example_qf(sampled_cf)
-            cf_dataset.append(example)
+            example_pair = preprocess_example_qf(sampled_cf) # note: this returns two examples (base -> source and source -> base)
+            cf_dataset.extend(example_pair)
         
     print(f'Generated {len(cf_dataset)} examples')
 
@@ -705,8 +1019,8 @@ def qf_cf(
         example = cf_dataset[0]
         print('Example (index 0):')
         print('Base:', example['base'])
-        print('Base aux:', example['base'].split()[example['matrix_verb_index']])
+        print('Base aux:', example['base'].split()[example['base_matrix_verb_index']])
         print('Source:', example['source'])
-        print('Source aux:', example['source'].split()[example['matrix_verb_index']])
+        print('Source aux:', example['source'].split()[example['source_matrix_verb_index']])
 
     return cf_dataset
