@@ -10,7 +10,7 @@ python train_transformers.py \
     --seed $seed \
     --tied-embedding \
     --save_every 100000 \
-    --save_dir /nlp/scr/amirzur/qf_decl_and_tense_s${seed} \
-    --wandb_dir /nlp/scr/amirzur \
+    --save_dir /nlp/scr/amirzur/causal_transfer/qf_decl_and_tense_s${seed} \
+    --wandb_dir /nlp/scr/amirzur/causal_transfer \
     --shared_vocab all \
     --data_dir question_formation_decl_data

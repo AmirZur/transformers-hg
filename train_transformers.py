@@ -930,7 +930,7 @@ if __name__ == "__main__":
     set_seed(args)
     ### NOTE: change this to your own wandb project and entity!
     wandb_logger = wandb.init(
-        project="flavors_of_abstraction", entity=WANDB_ENTITY_NAME, config=vars(args),
+        project="causal_transfer", entity=WANDB_ENTITY_NAME, config=vars(args),
         dir=args.wandb_dir
     )
     # To work with wandb sweeps
