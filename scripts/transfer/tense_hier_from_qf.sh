@@ -3,7 +3,7 @@ from=$1
 cp=$2
 warmup=$3
 
-python train_transformers.py \
+uv run python train_transformers.py \
     --encoder_n_layers 6 \
     --callback \
     --dataset tense \
