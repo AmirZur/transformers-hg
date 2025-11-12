@@ -12,10 +12,10 @@ uv run python train_transformers.py \
     --seed 42 \
     --tied-embedding \
     --save_every 30000 \
-    --save_dir ${from}_to_tense_linear \
+    --save_dir ${from}_cp${cp}_to_tense_linear \
     --data_dir tense_inflection_linear_data \
     --model_load_path $from \
-    --model_load_checkpoint $cp \
+    --model_load_checkpoint checkpoint_$cp.pickle \
     --wandb_dir /nlp/scr/amirzur/causal_transfer \
     --shared_vocab all \
     --num_embed_warmup_steps $warmup
