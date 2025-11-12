@@ -10,7 +10,7 @@ uv run python train_transformers.py \
     --seed $seed \
     --tied-embedding \
     --save_every 10000 \
-    --save_dir /nlp/scr/amirzur/qf_and_tense_past_s${seed} \
-    --wandb_dir /nlp/scr/amirzur \
+    --save_dir /nlp/scr/amirzur/causal_transfer/qf_and_tense_past_s${seed} \
+    --wandb_dir /nlp/scr/amirzur/causal_transfer \
     --shared_vocab all \
     --data_dir tense_inflection_past_data
