@@ -11,6 +11,6 @@ python train_transformers.py \
     --tied-embedding \
     --save_every 100000 \
     --save_dir /nlp/scr/amirzur/causal_transfer/qf_decl_and_tense_s${seed} \
-    --wandb_dir /nlp/scr/amirzur/causal_transfer \
+    --wandb_dir /nlp/scr/amirzur/causal_transfer/wandb \
     --shared_vocab all \
     --data_dir question_formation_decl_data

@@ -237,7 +237,7 @@ def merge_vocabs(vocabs):
                 new_vocab._add_word(w)
     return new_vocab
 
-def main_lm(args):
+def main_lm(args, wandb_run=None):
     out_vocab = None
     in_vocab = None
     if args.shared_vocab:
@@ -801,7 +801,8 @@ def main_lm(args):
         eval_every=args.eval_every,
         max_steps=args.max_train_steps,
         train_batch_size=args.batch_size,
-        num_embed_warmup_steps=args.num_embed_warmup_steps
+        num_embed_warmup_steps=args.num_embed_warmup_steps,
+        wandb_run=wandb_run
     )
 
 
@@ -928,19 +929,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     set_seed(args)
-    ### NOTE: change this to your own wandb project and entity!
-    wandb_logger = wandb.init(
-        project="causal_transfer", entity=WANDB_ENTITY_NAME, config=vars(args),
-        dir=args.wandb_dir
-    )
-    # To work with wandb sweeps
-    args = AttrDict((wandb_logger.config))
 
     if args.save_prefix != "":
         args.save_dir = f"{args.save_prefix}-encL{args.encoder_n_layers}-decL{args.decoder_n_layers}-LR{args.lr}-Nheads{args.n_heads}-EmbSize{args.vec_dim}-TiedEmb{args.tied_embedding}-Seq2Seq{args.not_lm}-Mode{args.mode}-PrefixLM{args.is_prefix_lm}-{args.seed}/"
+    
+    run_name = "{}-{}".format(args.save_dir.split('/')[-1], args.seed)
 
-    if args.save_dir != "":
-        wandb.run.name = "{}-{}".format(args.save_dir, args.seed)
-    wandb.run.save()
+    ### NOTE: change this to your own wandb project and entity!
+    wandb.login()
 
-    main_lm(args)
+    with wandb.init(project="causal_transfer", config=vars(args), dir=args.wandb_dir, name=run_name) as wandb_run:
+        main_lm(args, wandb_run)

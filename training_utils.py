@@ -251,6 +251,7 @@ def train_loop(
     max_steps=20000000,
     num_warmup_steps=10000,
     num_embed_warmup_steps=None,
+    wandb_run=None
 ):
     num_steps = 0
     max_grad_norm = 1
@@ -311,7 +312,10 @@ def train_loop(
                                 "val_aux": val_score,
                                 "test_aux": test_score,
                             }
-                            wandb.log(wandbdict)
+                            if wandb_run is not None:
+                                wandb_run.log(wandbdict)
+                            else:
+                                wandb.log(wandbdict)
                         else:
                             for name, fn in callback_fn.items():
                                 wandbdict = {"iteration": num_steps}
@@ -323,7 +327,10 @@ def train_loop(
                                 # if "test" in val_datasets:
                                 #     test_score = fn("test")
                                 #     wandbdict[f"test_{name}"] = test_score
-                                wandb.log(wandbdict)
+                                if wandb_run is not None:
+                                    wandb_run.log(wandbdict)
+                                else:
+                                    wandb.log(wandbdict)
                 if num_steps % args.save_every == 0:
                     if len(save_dir) > 0:
                         torch.save(
@@ -360,13 +367,19 @@ def train_loop(
                         {"loss": sum(losses), "num_steps": num_steps}
                     )
                     grad_norm = get_grad_norm(model.model)
-                    wandb.log(
-                        {
+                    if wandb_run is not None:
+                        wandb_run.log({
                             "loss": sum(losses),
                             "grad_norm": grad_norm,
                             "iteration": num_steps,
-                        }
-                    )
+                        })
+                    else:
+                        wandb.log({
+                            "loss": sum(losses),
+                            "grad_norm": grad_norm,
+                            "iteration": num_steps,
+                        })
+
                     opt.step()
                     if not args.no_decay_lr:
                         scheduler.step()
@@ -378,13 +391,18 @@ def train_loop(
                 num_steps += 1
                 progress_bar.set_postfix({"loss": sum(losses), "num_steps": num_steps})
                 grad_norm = get_grad_norm(model.model)
-                wandb.log(
-                    {
+                if wandb_run is not None:
+                    wandb_run.log({
                         "loss": sum(losses),
                         "grad_norm": grad_norm,
                         "iteration": num_steps,
-                    }
-                )
+                    })
+                else:
+                    wandb.log({
+                        "loss": sum(losses),
+                        "grad_norm": grad_norm,
+                        "iteration": num_steps,
+                    })
                 torch.nn.utils.clip_grad_norm_(model.model.parameters(), max_grad_norm)
                 opt.step()
                 scheduler.step()
